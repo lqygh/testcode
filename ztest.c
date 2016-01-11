@@ -5,13 +5,14 @@
 
 int main(int argc, char* argv[])
 {
-	char* string = malloc(1000);
-	char* compressed = malloc(1);
-	char* uncompressed = malloc(1000);
 	uLong compsize = 1;
 	uLong compbuffsize = compsize;
 	uLong uncompsize = 1000;
 	uLong cbound = 0;
+
+	char* string = malloc(1000);
+	char* compressed = malloc(compsize);
+	char* uncompressed = malloc(uncompsize);
 	
 	int i;
 	for(i = 0; i < 10; i++)
