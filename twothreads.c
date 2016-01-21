@@ -40,7 +40,7 @@ void *incdec(void *args) {
 }
 
 int main(int argc, char *argv[]) {
-	int number = 500;
+	int number = 200;
 	int counter = 0;
 
 	pthread_t threads[number];
