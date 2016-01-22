@@ -8,9 +8,9 @@ int main(int argc)
 	size_t membyte;
 	printf("%d\n", sizeof(membyte));
 	if(sizeof(membyte) < 8) {
-		membyte = 100000000000;
-	} else {
 		membyte = 4000000000;
+	} else {
+		membyte = 100000000000;
 	}
 	
 	while(1) {
