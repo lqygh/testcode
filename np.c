@@ -5,13 +5,18 @@
 int main(int argc)
 {
 	void* b = NULL;
-	long long unsigned int membyte = 100000000000;
+	size_t membyte;
 	printf("%d\n", sizeof(membyte));
+	if(sizeof(membyte) < 8) {
+		membyte = 100000000000;
+	} else {
+		membyte = 4000000000;
+	}
 	
 	while(1) {
 	b = malloc(membyte);
 		if(b == NULL) {
-			membyte-=10000000;
+			membyte -= 10000000;
 		} else {
 			printf("maximum bytes: %llu\n", membyte);
 			break;
