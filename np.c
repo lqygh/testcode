@@ -19,7 +19,8 @@ int main(int argc)
 	}
 	
 	printf("maximum bytes: %lu\n", membyte);
-	printf("allocating memory\n");
+	membyte = 0.9*membyte;
+	printf("allocating %lu bytes of memory\n", membyte);
 	b = malloc(membyte);
 	if(b == NULL) {
 		printf("failed to allocate memory, exiting\n");
