@@ -6,7 +6,8 @@ int main(int argc)
 {
 	void* b = NULL;
 	long long unsigned int membyte = 100000000000;
-
+	printf("%d\n", sizeof(membyte));
+	
 	while(1) {
 	b = malloc(membyte);
 		if(b == NULL) {
