@@ -7,8 +7,10 @@ ztest:
 ipdns1.0:
 	gcc -O3 ipdns1.0.c -o ipdns1.0
 
-tt:
+twothreads:
 	gcc -O3 -std=c99 twothreads.c -lpthread -o twothreads
 
-all:	np	ztest	ipdns1.0	tt
+all:	np	ztest	ipdns1.0	twothreads
 
+rm:
+	rm np ztest ipdns1.0 twothreads

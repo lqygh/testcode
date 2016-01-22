@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/timeb.h>
-int main()
+int main(int argc)
 {
 	void *b = NULL;
 	uint64_t membyte = 100000000;
@@ -17,27 +18,34 @@ int main()
 		}
 	}
 	
-	printf("maximum bytes: %d\n", membyte);
+	printf("maximum bytes: %lu\n", membyte);
 	printf("allocating memory\n");
 	b = malloc(membyte);
-	printf("pointer value: %p\n", b);
+	if(b == NULL) {
+		printf("failed to allocate memory, exiting\n");
+		return 1;
+	}
+	printf("memory allocated, pointer value: %p\n", b);
 
 	int i = 0;
-	struct timeb before;
+	struct timeb before, after;
+	printf("writing %lu bytes to memory\n", membyte);
 	ftime(&before);
 	for(i = 0; i < membyte-1; i++) {
 	*((char *)b+i) = (char)12;
 	}
-	struct timeb after;
 	ftime(&after);
-	
 	double elapsed = (double)after.time + (double)after.millitm/1000.0 - (double)before.time - (double)before.millitm/1000.0;
-	printf("%lu %hu %lu %hu\n", after.time, after.millitm, before.time, before.millitm);
-	printf("%f seconds elapsed\n", elapsed);
-
+	//printf("%lu %hu %lu %hu\n", after.time, after.millitm, before.time, before.millitm);
+	printf("%f seconds elapsed during writing\n", elapsed);
 	double speed = (double)membyte/(double)elapsed;
-	printf("%f mbytes per second\n", speed/1000000.0);
-	sleep(10);
+	printf("\n%f mbytes per second\n", speed/1000000.0);
+	
+	if(argc > 1) {
+		sleep(20);
+	}
+	
+	printf("\nfreeing memory\n");
 	free(b);
 	return 0;
 }
