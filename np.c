@@ -23,7 +23,7 @@ int main(int argc)
 		}
 	}
 	
-	membyte = membyte/2;
+	membyte = membyte*0.9;
 	printf("using %llu bytes of memory\n", membyte);
 	printf("pointer value: %p\n", b);
 
