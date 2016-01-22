@@ -29,20 +29,34 @@ int main(int argc)
 
 	struct timeb before, after;
 	printf("writing %zu bytes to memory\n", membyte);
-	int i = 0;
+	size_t i = 0;
 	ftime(&before);
 	for(i = 0; i < membyte-1; i++) {
-	*((char *)b+i) = (char)12;
+		*((char*)b+i) = 127;
 	}
 	ftime(&after);
 	double elapsed = (double)after.time + (double)after.millitm/1000.0 - (double)before.time - (double)before.millitm/1000.0;
 	//printf("%lu %hu %lu %hu\n", after.time, after.millitm, before.time, before.millitm);
 	printf("%f seconds elapsed during writing\n", elapsed);
 	double speed = (double)membyte/(double)elapsed;
-	printf("\n%f mbytes per second\n", speed/1000000.0);
+	printf("\n%f mbytes per second\n\n", speed/1000000.0);
+	
+	printf("reading %zu bytes from memory\n", membyte);
+	char tmpchar = 0;
+	ftime(&before);
+	for(i = 0; i < membyte-1; i++) {
+		*((char*)b+i);
+	}
+	ftime(&after);
+	elapsed = (double)after.time + (double)after.millitm/1000.0 - (double)before.time - (double)before.millitm/1000.0;
+	//printf("%lu %hu %lu %hu\n", after.time, after.millitm, before.time, before.millitm);
+	printf("%f seconds elapsed during reading\n", elapsed);
+	speed = (double)membyte/(double)elapsed;
+	printf("\n%f mbytes per second\n\n", speed/1000000.0);
 	
 	if(argc > 1) {
 		sleep(20);
+		printf("sleep for some time\n");
 	}
 	
 	printf("\nfreeing memory\n");
