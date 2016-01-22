@@ -45,7 +45,7 @@ int main(int argc)
 	char tmpchar = 0;
 	ftime(&before);
 	for(i = 0; i < membyte-1; i++) {
-		*((char*)b+i);
+		tmpchar = *((char*)b+i);
 	}
 	ftime(&after);
 	elapsed = (double)after.time + (double)after.millitm/1000.0 - (double)before.time - (double)before.millitm/1000.0;
