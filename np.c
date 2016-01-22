@@ -5,25 +5,25 @@
 int main(int argc)
 {
 	void* b = NULL;
-	uint64_t membyte = 100000000000;
+	long long unsigned int membyte = 100000000000;
 
 	while(1) {
 	b = malloc(membyte);
 		if(b == NULL) {
 			membyte-=10000000;
 		} else {
-			printf("maximum bytes: %lu\n", membyte);
+			printf("maximum bytes: %llu\n", membyte);
 			break;
 		}
 	}
 	
 	membyte = membyte/2;
-	printf("using %lu bytes of memory\n", membyte);
+	printf("using %llu bytes of memory\n", membyte);
 	printf("pointer value: %p\n", b);
 
-	int i = 0;
 	struct timeb before, after;
-	printf("writing %lu bytes to memory\n", membyte);
+	printf("writing %llu bytes to memory\n", membyte);
+	int i = 0;
 	ftime(&before);
 	for(i = 0; i < membyte-1; i++) {
 	*((char *)b+i) = (char)12;
