@@ -4,29 +4,22 @@
 #include <sys/timeb.h>
 int main(int argc)
 {
-	void *b = NULL;
-	uint64_t membyte = 100000000;
+	void* b = NULL;
+	uint64_t membyte = 100000000000;
 
 	while(1) {
 	b = malloc(membyte);
 		if(b == NULL) {
 			membyte-=10000000;
-			break;
 		} else {
-			free(b);
-			membyte+=10000000;
+			printf("maximum bytes: %lu\n", membyte);
+			break;
 		}
 	}
 	
-	printf("maximum bytes: %lu\n", membyte);
-	membyte = 0.9*membyte;
-	printf("allocating %lu bytes of memory\n", membyte);
-	b = malloc(membyte);
-	if(b == NULL) {
-		printf("failed to allocate memory, exiting\n");
-		return 1;
-	}
-	printf("memory allocated, pointer value: %p\n", b);
+	membyte = 0.5*membyte;
+	printf("using %lu bytes of memory\n", membyte);
+	printf("pointer value: %p\n", b);
 
 	int i = 0;
 	struct timeb before, after;
