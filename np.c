@@ -4,12 +4,12 @@
 int main()
 {
 	void *b = NULL;
-	int membyte = 100000000;
+	uint64_t membyte = 100000000;
 
 	while(1) {
 	b = malloc(membyte);
 		if(b == NULL) {
-			membyte-=50000000;
+			membyte-=10000000;
 			break;
 		} else {
 			free(b);
@@ -18,6 +18,7 @@ int main()
 	}
 	
 	printf("maximum bytes: %d\n", membyte);
+	printf("allocating memory\n");
 	b = malloc(membyte);
 	printf("pointer value: %p\n", b);
 
