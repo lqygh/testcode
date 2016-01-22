@@ -6,7 +6,7 @@ int main(int argc)
 {
 	void* b = NULL;
 	size_t membyte;
-	printf("%d\n", sizeof(membyte));
+	printf("size_t size is %d\n", sizeof(membyte));
 	if(sizeof(membyte) < 8) {
 		membyte = 4000000000;
 	} else {
@@ -18,17 +18,17 @@ int main(int argc)
 		if(b == NULL) {
 			membyte -= 10000000;
 		} else {
-			printf("maximum bytes: %llu\n", membyte);
+			printf("maximum bytes: %zu\n", membyte);
 			break;
 		}
 	}
 	
 	membyte = membyte*0.9;
-	printf("using %llu bytes of memory\n", membyte);
+	printf("using %zu bytes of memory\n", membyte);
 	printf("pointer value: %p\n", b);
 
 	struct timeb before, after;
-	printf("writing %llu bytes to memory\n", membyte);
+	printf("writing %zu bytes to memory\n", membyte);
 	int i = 0;
 	ftime(&before);
 	for(i = 0; i < membyte-1; i++) {
