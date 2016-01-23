@@ -74,28 +74,30 @@ int push(void* value, struct queue* q) {
 }
 
 int pop(void** value, struct queue* q) {
-	struct cell* c;
-	struct cell* cnext;
 	if(q->first == NULL && q->last == NULL) { //when queue is empty
 		printf("pop() error: cannot pop empty queue\n");
 		return -1;
 	} else if(q->first != NULL && q->last == NULL) { //when queue has only 1 item
-		c = q->first;
-		*value = c->value;
-		free(c);
+		*value = q->first->value;
+		free(q->first);
 		q->first = NULL;
 		return 1;
 	} else if(q->first != NULL && q->last != NULL) { //when queue has at least 2 items
-		c = q->last;
-		cnext = c->next;
-		if(cnext == q->first) { //when there are only 2 items
-			*value = c->value;
-			free(c);
+		if(q->last->next == q->first) { //when there are only 2 items
+			*value = q->first->value;
+			free(q->first);
+			q->first = q->last;
+			q->first->next = NULL;
 			q->last = NULL;
 		} else { //when there are more than 2 items
-			*value = c->value;
-			free(c);
-			q->last = cnext;
+			*value = q->first->value;
+			//seek the second cell that will be the new first cell
+			q->first = q->last->next;
+			while(q->first->next->next != NULL) {
+				q->first = q->first->next;
+			}
+			free(q->first->next); //free the old first cell
+			q->first->next = NULL;
 		}
 		return 1;
 	} else { //when first is NULL while last is not NULL
@@ -109,7 +111,7 @@ int main(int argc, char* argv[]) {
 	if(myqueue == NULL) {
 		return 1;
 	}
-	int number = 300;
+	int number = 100000;
 	int* vals = malloc(sizeof(int)*number);
 	int i = 0;
 	int retval = 0;
@@ -123,13 +125,13 @@ int main(int argc, char* argv[]) {
 	}
 	for(i = 0; i < number; i++) {
 		int* value = NULL;
-		printf("popping queue");
+		printf("popping queue, ");
 		retval = pop((void *)(&value), myqueue);
 		if(retval != 1) {
-			printf("\n");
+			//failed
 		} else {
-			printf(", got %d\n", *value);
+			printf("got %d\n", *value);
 		}
-	}
+	}	
 	return 0;
 }
