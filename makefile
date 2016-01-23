@@ -10,7 +10,10 @@ ipdns1.0:
 twothreads:
 	gcc -O3 -std=c99 twothreads.c -lpthread -o twothreads
 
-all:	np	ztest	ipdns1.0	twothreads
+linkedlist:
+	gcc -O3 linkedlist.c -o linkedlist
+
+all:	np	ztest	ipdns1.0	twothreads	linkedlist
 
 rm:
-	rm np ztest ipdns1.0 twothreads
+	rm np ztest ipdns1.0 twothreads linkedlist
