@@ -83,7 +83,6 @@ int pop(void** value, struct queue* q) {
 		c = q->first;
 		*value = c->value;
 		free(c);
-		printf("%p\n", c);
 		q->first = NULL;
 		return 1;
 	} else if(q->first != NULL && q->last != NULL) { //when queue has at least 2 items
