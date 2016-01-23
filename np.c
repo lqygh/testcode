@@ -46,7 +46,7 @@ int main(int argc)
 		printf("sleep for some time\n");
 	}
 	
-	printf("\nfreeing memory\n");
+	printf("freeing memory\n");
 	free(b);
 	return 0;
 }
