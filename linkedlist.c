@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 	int retval = 0;
 	for(i = 0; i < number; i++) {
 		vals[i] = i;
-		printf("pushing %d into queue\n");
+		printf("pushing %d into queue\n", vals[i]);
 		retval = push(&vals[i], myqueue);
 		if(retval != 1) {
 			return 1;
