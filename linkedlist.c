@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 struct cell {
 	void* value;
@@ -40,7 +41,7 @@ void* getlast(struct queue* q) {
 	} else if(q->first != NULL && q->last != NULL) { //when queue has at least 2 items
 		return q->last->value;
 	} else { //when first is NULL while last is not NULL
-		printf("getlast() error: first item should not be NULL when last item is not NULL\n");
+		printf("getlast() error: queue first item should not be NULL when last item is not NULL\n");
 		return NULL;
 	}
 }
@@ -58,12 +59,14 @@ int push(void* value, struct queue* q) {
 		return 1;
 	} else if(q->first != NULL && q->last == NULL) { //when queue has only 1 item
 		newcell->value = value;
-		newcell->next = q->first;
+		newcell->next = NULL;
 		q->last = newcell;
+		q->first->next = newcell;
 		return 1;
 	} else if(q->first != NULL && q->last != NULL) { //when queue has at least 2 items
 		newcell->value = value;
-		newcell->next = q->last;
+		newcell->next = NULL;
+		q->last->next = newcell;
 		q->last = newcell;
 		return 1;
 	} else { //when first is NULL while last is not NULL
@@ -74,30 +77,26 @@ int push(void* value, struct queue* q) {
 }
 
 int pop(void** value, struct queue* q) {
+	struct cell* newfirst = NULL;
 	if(q->first == NULL && q->last == NULL) { //when queue is empty
 		printf("pop() error: cannot pop empty queue\n");
 		return -1;
 	} else if(q->first != NULL && q->last == NULL) { //when queue has only 1 item
 		*value = q->first->value;
 		free(q->first);
-		q->first = NULL;
+		q->first = NULL;;
 		return 1;
 	} else if(q->first != NULL && q->last != NULL) { //when queue has at least 2 items
-		if(q->last->next == q->first) { //when there are only 2 items
+		if(q->first->next == q->last) { //when there are only 2 items
 			*value = q->first->value;
 			free(q->first);
 			q->first = q->last;
-			q->first->next = NULL;
 			q->last = NULL;
 		} else { //when there are more than 2 items
 			*value = q->first->value;
-			//seek the second cell that will be the new first cell
-			q->first = q->last->next;
-			while(q->first->next->next != NULL) {
-				q->first = q->first->next;
-			}
-			free(q->first->next); //free the old first cell
-			q->first->next = NULL;
+			newfirst = q->first->next;
+			free(q->first);
+			q->first = newfirst;
 		}
 		return 1;
 	} else { //when first is NULL while last is not NULL
@@ -107,31 +106,62 @@ int pop(void** value, struct queue* q) {
 }
 
 int main(int argc, char* argv[]) {
+	struct timeval before;
+	struct timeval after;
 	struct queue* myqueue = newqueue();
 	if(myqueue == NULL) {
+		printf("failed to create empty queue\n");
 		return 1;
 	}
-	int number = 100000;
+	int number = 0;
+	if(argc > 1) {
+		number = atoi(argv[1]);
+	} else {
+		number = 10000000;
+	}
 	int* vals = malloc(sizeof(int)*number);
+	if(vals == NULL) {
+		printf("failed to allocate memory for array");
+		return 1;
+	}
 	int i = 0;
 	int retval = 0;
+	
+	printf("number of items: %d\n", number);
+	gettimeofday(&before, NULL);
 	for(i = 0; i < number; i++) {
+		//printf("adding %d into array\n", vals[i]);
 		vals[i] = i;
-		printf("pushing %d into queue\n", vals[i]);
+	}
+	gettimeofday(&after, NULL);
+	printf("array operation time: %f seconds\n", (after.tv_sec-before.tv_sec) + (after.tv_usec-before.tv_usec)/1000000.0);
+	
+	gettimeofday(&before, NULL);
+	for(i = 0; i < number; i++) {
+		//printf("pushing %d into queue\n", vals[i]);
 		retval = push(&vals[i], myqueue);
 		if(retval != 1) {
 			return 1;
 		}
 	}
+	gettimeofday(&after, NULL);
+	printf("push() operation time: %f seconds\n", (after.tv_sec-before.tv_sec) + (after.tv_usec-before.tv_usec)/1000000.0);
+	
+	gettimeofday(&before, NULL);
 	for(i = 0; i < number; i++) {
 		int* value = NULL;
-		printf("popping queue, ");
+		//printf("popping queue, ");
 		retval = pop((void *)(&value), myqueue);
 		if(retval != 1) {
 			//failed
 		} else {
-			printf("got %d\n", *value);
+			//printf("got %d\n", *value);
 		}
-	}	
+	}
+	gettimeofday(&after, NULL);
+	printf("pop() operation time: %f seconds\n", (after.tv_sec-before.tv_sec) + (after.tv_usec-before.tv_usec)/1000000.0);
+
+	free(vals);
+	
 	return 0;
 }
