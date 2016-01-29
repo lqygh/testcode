@@ -140,8 +140,10 @@ int main(int argc, char* argv[]) {
 	for(i = 0; i < number; i++) {
 		//printf("pushing %d into queue\n", vals[i]);
 		retval = push(&vals[i], myqueue);
-		if(retval != 1) {
-			return 1;
+		if(retval != 1) { //when push() fails, go to pop() loop directly
+			printf("can only push %d items at most\n", i);
+			number = i;
+			break;
 		}
 	}
 	gettimeofday(&after, NULL);
@@ -152,11 +154,11 @@ int main(int argc, char* argv[]) {
 		int* value = NULL;
 		//printf("popping queue, ");
 		retval = pop((void *)(&value), myqueue);
-		if(retval != 1) {
+		/*if(retval != 1) {
 			//failed
 		} else {
 			//printf("got %d\n", *value);
-		}
+		}*/
 	}
 	gettimeofday(&after, NULL);
 	printf("pop() operation time: %f seconds\n", (after.tv_sec-before.tv_sec) + (after.tv_usec-before.tv_usec)/1000000.0);
