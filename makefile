@@ -13,7 +13,10 @@ twothreads:
 linkedlist:
 	gcc -O3 linkedlist.c -o linkedlist
 
+bintree:
+	gcc -O3 bintree.c -o bintree
+
 all:	np	ztest	ipdns1.0	twothreads	linkedlist
 
 rm:
-	rm np ztest ipdns1.0 twothreads linkedlist
+	rm np ztest ipdns1.0 twothreads linkedlist bintree
