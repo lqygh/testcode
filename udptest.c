@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 		}
 	
 		int i = 0;
-		for(i = 0; i < buffersize; i++) {
+		for(i = 0; i < buffersize+1; i++) {
 			ret = sendto(fd, buffer, i, 0, res->ai_addr, res->ai_addrlen);
 			printf("sendto() returns %d\n", ret);
 		}
