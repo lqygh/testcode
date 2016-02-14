@@ -12,6 +12,7 @@ int create_server_socket(char* port) {
 	struct addrinfo* res;
 	
 	bzero(&hints, sizeof(hints));
+	hints.ai_flags = AI_PASSIVE; //important for server mode
 	hints.ai_flags = 0;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
