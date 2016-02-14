@@ -16,7 +16,10 @@ linkedlist:
 bintree:
 	gcc -O3 bintree.c -o bintree
 
-all:	np	ztest	ipdns1.0	twothreads	linkedlist
+BST:
+	gcc -O3 BST.c -o BST
+
+all:	np	ztest	ipdns1.0	twothreads	linkedlist	bintree	BST
 
 rm:
-	rm np ztest ipdns1.0 twothreads linkedlist bintree
+	rm np ztest ipdns1.0 twothreads linkedlist bintree BST
