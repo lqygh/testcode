@@ -45,13 +45,13 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
-	int buffersize = 2000;
+	int buffersize = 100000;
 	char* buffer = malloc(buffersize);
 	if(buffer == NULL) {
 		printf("failed to allocate memory\n");
 		return 1;
 	}
-	bzero(buffer, 2000);
+	bzero(buffer, buffersize);
 
 	if(*argv[1] == 'c') {
 		printf("Client mode\n");
@@ -90,6 +90,10 @@ int main(int argc, char* argv[]) {
 		for(i = 0; i < buffersize+1; i++) {
 			ret = sendto(fd, buffer, i, 0, res->ai_addr, res->ai_addrlen);
 			printf("sendto() returns %d\n", ret);
+			if(ret == -1) {
+				printf("sendto() can send %d bytes at most\n", i-1);
+				break;
+			}
 		}
 	
 		close(fd);
