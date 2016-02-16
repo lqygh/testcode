@@ -7,13 +7,13 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-int create_server_socket(char* port) {
+int create_udp_server_socket(char* port) {
 	struct addrinfo hints;
 	struct addrinfo* res;
-	
+		
 	bzero(&hints, sizeof(hints));
 	hints.ai_flags = AI_PASSIVE; //important for server mode
-	hints.ai_family = AF_INET;
+	hints.ai_family = AF_INET6;
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = 0;
 	
@@ -23,11 +23,15 @@ int create_server_socket(char* port) {
 		return -1;
 	}
 	
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(fd == -1) {
 		perror("socket()");
 		return -1;
 	}
+	
+	//necessary to ensure dual stack mode is enabled on some platforms
+	int mode = 0;
+	setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&mode, sizeof(mode));
 	
 	ret = bind(fd, res->ai_addr, res->ai_addrlen);
 	if(ret != 0) {
@@ -65,7 +69,7 @@ int main(int argc, char* argv[]) {
 	
 		bzero(&hints, sizeof(hints));
 		hints.ai_flags = 0;
-		hints.ai_family = AF_INET;
+		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_protocol = 0;
 	
@@ -75,12 +79,24 @@ int main(int argc, char* argv[]) {
 			return 1;
 		}
 	
-		char ip[INET_ADDRSTRLEN];
+		char ip[INET6_ADDRSTRLEN];
 		printf("IP address string size: %lu\n", sizeof(ip));
-		inet_ntop(AF_INET, &((struct sockaddr_in* )(res->ai_addr))->sin_addr, ip, sizeof(ip));
+		if(res->ai_family == AF_INET) {
+			inet_ntop(res->ai_family, &((struct sockaddr_in* )(res->ai_addr))->sin_addr, ip, sizeof(ip));
+			
+		} else if(res->ai_family == AF_INET6) {
+			inet_ntop(res->ai_family, &((struct sockaddr_in6* )(res->ai_addr))->sin6_addr, ip, sizeof(ip));
+		
+		} else {
+			ip[0] = 'e';
+			ip[1] = 'r';
+			ip[2] = 'r';
+			ip[3] = '\0';
+		}
 		printf("Destination IP address is %s\n", ip);
+		
 	
-		int fd = socket(AF_INET, SOCK_DGRAM, 0);
+		int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if(fd == -1) {
 			perror("socket()");
 			return 1;
@@ -105,15 +121,27 @@ int main(int argc, char* argv[]) {
 	} else if(*argv[1] == 's') {
 		printf("Server mode\n");
 		
-		int fd = create_server_socket(argv[2]);
+		int fd = create_udp_server_socket(argv[2]);
 		if(fd == -1) {
-			printf("create_server_socket() failed\n");
+			printf("create_udp_server_socket() failed\n");
 			return 1;
 		}
 		
+		struct sockaddr_storage from;
+		socklen_t fromlen = sizeof(struct sockaddr_storage);
+		char fromhost[NI_MAXHOST];
+		char fromport[NI_MAXSERV];
+		int ret;
 		while(1) {
-			int ret = recv(fd, buffer, buffersize, 0);
-			printf("recv() returns %d\n", ret);
+			ret = recvfrom(fd, buffer, buffersize, 0, (struct sockaddr*)&from, &fromlen);
+			printf("recvfrom() returns %d ", ret);
+			
+			ret = getnameinfo((struct sockaddr*)&from, fromlen, fromhost, sizeof(fromhost), fromport, sizeof(fromport), NI_NUMERICHOST | NI_NUMERICSERV);
+			if(ret != 0) {
+			printf("\ngetnameinfo(): %s\n", gai_strerror(ret));
+			} else {
+				printf("source: %s:%s\n", fromhost, fromport);
+			}
 		}
 		
 	} else {
