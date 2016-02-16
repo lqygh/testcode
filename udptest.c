@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
 			ret = sendto(fd, buffer, i, 0, res->ai_addr, res->ai_addrlen);
 			printf("sendto() returns %d\n", ret);
 			if(ret == -1) {
-				printf("sendto() can send %d bytes at most\n", i-1);
+				perror("sendto()");
 				break;
 			}
 		}
