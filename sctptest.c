@@ -7,15 +7,15 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-int create_udp_server_socket(char* port) {
+int create_sctp_server_socket(char* port) {
 	struct addrinfo hints;
 	struct addrinfo* res;
 		
 	bzero(&hints, sizeof(hints));
 	hints.ai_flags = AI_PASSIVE; //important for server mode
 	hints.ai_family = AF_INET6;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = 0;
+	hints.ai_socktype = SOCK_SEQPACKET;
+	hints.ai_protocol = IPPROTO_SCTP;
 	
 	int ret = getaddrinfo(NULL, port, &hints, &res);
 	if(ret != 0) {
@@ -36,6 +36,12 @@ int create_udp_server_socket(char* port) {
 	ret = bind(fd, res->ai_addr, res->ai_addrlen);
 	if(ret != 0) {
 		perror("bind()");
+		return -1;
+	}
+	
+	ret = listen(fd, 50);
+	if(ret != 0) {
+		perror("listen()");
 		return -1;
 	}
 	
@@ -70,8 +76,8 @@ int main(int argc, char* argv[]) {
 		bzero(&hints, sizeof(hints));
 		hints.ai_flags = 0;
 		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = SOCK_DGRAM;
-		hints.ai_protocol = 0;
+		hints.ai_socktype = SOCK_SEQPACKET;
+		hints.ai_protocol = IPPROTO_SCTP;
 	
 		int ret = getaddrinfo(argv[2], argv[3], &hints, &res);
 		if(ret != 0) {
@@ -103,7 +109,7 @@ int main(int argc, char* argv[]) {
 		}
 	
 		int i;
-		for(i = 1; i < buffersize+1; i++) {
+		for(i = 1; i < buffersize+1; i+=100) {
 			ret = sendto(fd, buffer, i, 0, res->ai_addr, res->ai_addrlen);
 			printf("sendto() returns %d\n", ret);
 			if(ret == -1) {
@@ -121,9 +127,9 @@ int main(int argc, char* argv[]) {
 	} else if(*argv[1] == 's') {
 		printf("Server mode\n");
 		
-		int fd = create_udp_server_socket(argv[2]);
+		int fd = create_sctp_server_socket(argv[2]);
 		if(fd == -1) {
-			printf("create_udp_server_socket() failed\n");
+			printf("create_sctp_server_socket() failed\n");
 			return 1;
 		}
 		
