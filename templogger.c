@@ -104,13 +104,15 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "Received message too short: %d\n", ret);
 		} else {
 			gettimeofday(&currenttime, NULL);
-			fprintf(fp, "%llu,%d,%d,%d,%d,%d\n", (long long unsigned int)(currenttime.tv_sec), buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
-			fflush(fp);
-			writecount += 1;
-			printf("\rWritten %llu,%d,%d,%d,%d,%d to file, count: %d", (long long unsigned int)(currenttime.tv_sec), buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], writecount);
+			printf("\rWriting %llu,%d,%d,%d,%d,%d to file, count: %d", (long long unsigned int)(currenttime.tv_sec), buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], writecount+1);
 			fflush(stdout);
+			fprintf(fp, "%llu,%d,%d,%d,%d,%d\n", (long long unsigned int)(currenttime.tv_sec), buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
+			if(fflush(fp) != 0) {
+				perror("\nfflush()");
+			} else {				
+				writecount += 1;
+			}
 		}
-		
 		sleep(interval);
 	}
 

@@ -19,6 +19,15 @@ bintree:
 BST:
 	gcc -O3 BST.c -o BST
 
+gmp_factorial:
+	gcc -O3 -o gmp_factorial gmp_factorial.c -lgmp
+
+ex4q7:
+	gcc -O3 -o ex4q7 ex4q7.c -lgmp
+
+templogger:
+	gcc -O3 -Wall templogger.c -o templogger
+
 all:	np	ztest	ipdns1.0	twothreads	linkedlist	bintree	BST
 
 rm:
