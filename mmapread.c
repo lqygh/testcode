@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <linux/fs.h>
 
 int main (int argc, char *argv[])
 {
@@ -33,6 +34,11 @@ int main (int argc, char *argv[])
                 //return 1;
         }
 
+		if (S_ISBLK (sb.st_mode)) {
+				fprintf (stderr, "%s is a block device\n", argv[1]);
+				ioctl (fd, BLKGETSIZE64, &(sb.st_size));
+		}
+		
         p = mmap (0, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
         if (p == MAP_FAILED) {
                 perror ("mmap");
@@ -44,8 +50,18 @@ int main (int argc, char *argv[])
                 return 1;
         }
 
-        for (len = 0; len < sb.st_size; len++)
-                putchar (p[len]);
+        char min = p[0], max = p[0];
+        for (len = 0; len < sb.st_size; len++) {
+			if(p[len] < min) {
+				min = p[len];
+			}
+			
+			if(p[len] > max) {
+				max = p[len];
+			}
+		}
+
+		printf("min is %d, max is %d\n", min, max);
 
         if (munmap (p, sb.st_size) == -1) {
                 perror ("munmap");
