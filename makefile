@@ -28,7 +28,8 @@ ex4q7:
 templogger:
 	gcc -O3 -Wall templogger.c -o templogger
 
+mmapheapsort:
+	gcc -Wall -O3 mmapheapsort.c -o mmapheapsort
+
 all:	np	ztest	ipdns1.0	twothreads	linkedlist	bintree	BST
 
-rm:
-	rm np ztest ipdns1.0 twothreads linkedlist bintree BST
