@@ -1,10 +1,24 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <linux/fs.h>
+
+int is_sorted (char *a, off_t n) {
+	if(n < 2) {
+		return 1;
+	} else {
+		off_t i;
+		for(i = 1; i < n; i++) {
+			if(a[i] < a[i-1]) return 0;
+		}
+	}
+	
+	return 1;
+}
 
 int main (int argc, char *argv[])
 {
@@ -50,6 +64,12 @@ int main (int argc, char *argv[])
                 return 1;
         }
 
+		if (is_sorted(p, sb.st_size)) {
+			printf ("%s is already sorted\n", argv[1]);
+		} else {
+			printf ("%s is not sorted yet\n", argv[1]);
+		}
+		
         char min = p[0], max = p[0];
         for (len = 0; len < sb.st_size; len++) {
 			if(p[len] < min) {

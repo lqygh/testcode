@@ -28,6 +28,9 @@ ex4q7:
 templogger:
 	gcc -O3 -Wall templogger.c -o templogger
 
+mmapread:
+	gcc -Wall -O3 mmapread.c -o mmapread
+
 mmapheapsort:
 	gcc -Wall -O3 mmapheapsort.c -o mmapheapsort
 
