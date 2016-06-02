@@ -35,5 +35,5 @@ mmapheapsort:
 	gcc -Wall -O3 mmapheapsort.c -o mmapheapsort
 
 mmapmergesort:
-	gcc -Wall -O3 mmapmergesort -o mmapmergesort
+	gcc -Wall -O3 mmapmergesort.c -o mmapmergesort
 
