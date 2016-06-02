@@ -34,5 +34,6 @@ mmapread:
 mmapheapsort:
 	gcc -Wall -O3 mmapheapsort.c -o mmapheapsort
 
-all:	np	ztest	ipdns1.0	twothreads	linkedlist	bintree	BST
+mmapmergesort:
+	gcc -Wall -O3 mmapmergesort -o mmapmergesort
 
