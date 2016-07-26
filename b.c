@@ -130,8 +130,8 @@ int main() {
 
 	int yes = 1;
 	if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-    	perror("setsockopt()");
-    	return 1;
+    		perror("setsockopt()");
+    		return 1;
 	}
 	
 	ret = bind(sockfd, res->ai_addr, res->ai_addrlen);
