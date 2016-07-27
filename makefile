@@ -37,3 +37,8 @@ mmapheapsort:
 mmapmergesort:
 	gcc -Wall -O3 mmapmergesort.c -o mmapmergesort
 
+b:
+	gcc -Wall -O3 b.c -lwiringPi -lpthread -o b
+
+c:
+	gcc -Wall -O3 c.c -lwiringPi -lpthread -o c
