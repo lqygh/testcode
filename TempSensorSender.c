@@ -436,8 +436,11 @@ int main(int argc, char *argv[]) {
 				
 				stret = sendto(sockfd, &response, responsesize, 0, res->ai_addr, res->ai_addrlen);
 				addrinfoiptotext(res, dstiptext, sizeof(dstiptext));
-				printf("sendto() returns %d, destination: %s:%d", stret, dstiptext, ntohs(get_in_port(res->ai_addr)));
-				perror(" ");
+				printf("sendto() returns %d, destination: %s:%d\n", stret, dstiptext, ntohs(get_in_port(res->ai_addr)));
+				if(stret == -1) {
+					perror("sendto()");
+				}
+				
 				printf("\n\n");
 			}
 		}
