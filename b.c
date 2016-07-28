@@ -22,7 +22,6 @@ void* net(void* arg) {
 	printf("net thread started\n");
 	
 	struct net_args* args = (struct net_args*) arg;
-	struct led_args* largs = args->largs;
 	
 	char* buffer = calloc(30, 1);
 	if(buffer == NULL) {
@@ -168,7 +167,7 @@ int main() {
 		pthread_t net_thread;
 		struct sockaddr_storage client_addr;
 		int new_fd;
-		int addr_size = sizeof(client_addr);
+		socklen_t addr_size = sizeof(client_addr);
 		
 		new_fd = accept(sockfd, (struct sockaddr*) &client_addr, &addr_size);
 		
