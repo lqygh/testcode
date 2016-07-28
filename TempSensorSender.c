@@ -98,7 +98,7 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 		return -1;
 	}
 	
-	wiringPiSetupGpio();
+	//wiringPiSetupGpio();
 	pinMode(pin, OUTPUT);
 	digitalWrite(pin, HIGH);
 	delay(200);
@@ -420,6 +420,7 @@ int main(int argc, char *argv[]) {
 	
 	sleep(5);
 	
+	wiringPiSetupGpio();
 	while(1) {
 		if(readsensor(pin, &sensorres)) {
 			if(sensorres.rhint + sensorres.tmpint == sensorres.sum || sensorres.rhint + sensorres.rhdec + sensorres.tmpint + sensorres.tmpdec == sensorres.sum) {
