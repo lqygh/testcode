@@ -45,3 +45,6 @@ c:
 
 TempSensorSender:
 	gcc -Wall -Wextra -O3 TempSensorSender.c -lwiringPi -lpthread -o TempSensorSender
+
+TempSensorSender2302:
+	gcc -Wall -Wextra -O3 TempSensorSender2302.c -lwiringPi -lpthread -o TempSensorSender2302
