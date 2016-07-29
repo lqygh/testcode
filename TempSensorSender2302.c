@@ -27,6 +27,20 @@ pthread_t ondemandresponseudp_thread;
 pthread_t ondemandresponsetcp_thread;
 pthread_mutex_t lock;
 
+void decodesensordata(struct sensordata *sensorresult, unsigned short *rh, short *temp) {
+	char *srp = (char *)sensorresult;
+	
+	*rh = 0;
+	char *rhp = (char *)rh;
+	rhp[0] = srp[1];
+	rhp[1] = srp[0];
+	
+	*temp = 0;
+	char *tempp = (char *)temp;
+	tempp[0] = srp[3];
+	tempp[1] = srp[2];
+}
+
 void addrinfoiptotext(struct addrinfo *ai, char *text, int textsize) {
 	if(textsize > 0) {
 		
@@ -76,30 +90,32 @@ in_port_t get_in_port(struct sockaddr *sa) {
     return (((struct sockaddr_in6*)sa)->sin6_port);
 }
 
-int readsensor(int pin, struct sensordata* sensorresult) {
-	int bitcount = 0;
+int readsensor(int pin, struct sensordata *sensorresult) {
+	int statecount = 1;
 	int status;
 	int laststatus;
-	int arr[50];
+	int arr[50] = {0};
 	int zerocount = 0;
 	int onecount = 0;
-	int totalcount = 0;
+	int validcount = 0;
 	int i = 0;
 	int j = 0;
 	unsigned char result[5] = {0, 0, 0, 0, 0};
 	
 	unsigned int starttime;
-	unsigned int totaltime;
 	unsigned int lasttime;
 	unsigned int interval;
 	
+	int readrawvalue[100] = {0};
+	unsigned int readrawinterval[100] = {0};
+	
 	if(pin <= 0) {
 		printf("Invalid pin number %d\n", pin);
-		return -1;
+		return 0;
 	}
 	
 	digitalWrite(pin, LOW);
-	delayMicroseconds(1000);
+	delayMicroseconds(800);
 	
 	digitalWrite(pin, HIGH);
 	pinMode(pin, INPUT);
@@ -109,25 +125,49 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 	starttime = lasttime = micros();
 	laststatus = digitalRead(pin);
 	
+	readrawvalue[statecount-1] = laststatus;
 	while(1) {
+		status = digitalRead(pin);
+		interval = micros() - lasttime;
+		
+		if(status != laststatus) {
+			readrawinterval[statecount-1] = interval;
+			statecount += 1;
+			readrawvalue[statecount-1] = status;
+			
+			lasttime = micros();
+			laststatus = status;
+		}
+		
+		if(micros() - starttime > 1000000) {
+			readrawinterval[statecount-1] = interval;
+			break;
+		}
+		delayMicroseconds(1);
+	}
+	
+	pinMode(pin, OUTPUT);
+	digitalWrite(pin, HIGH);
+	
+	/*while(1) {		
 		status = digitalRead(pin);
 		if(status != laststatus) {
 			interval = micros() - lasttime;
+			statecount += 1;
 			printf("[%u: %d] ", interval, laststatus);
 			
-			if(laststatus) {
-				bitcount++;
-				if(bitcount >= 3) {
-					if(interval <= 30) {
+			if(laststatus == HIGH) {
+				if(statecount > 2 && statecount < 83) {
+					if(interval <= 40) {
 						arr[i] = 0;
 						i++;
-						zerocount++;
-					} else if (interval <= 75) {
+						zerocount += 1;
+					} else if (interval >= 58) {
 						arr[i] = 1;
 						i++;
-						onecount++;
+						onecount += 1;
 					} else {
-						printf("[abnormal interval: %d] ", interval);
+						printf("[last interval abnormal: %d] ", interval);
 					}
 				}
 			} 
@@ -136,32 +176,52 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 			laststatus = status;
 		}
 		
-		totaltime = micros() - starttime;
-		if(bitcount > 50) break;
-		if(totaltime > 2500000) break;
-	}
+		if(micros() - starttime > 2500000) break;
+		
+		delayMicroseconds(1);
+	}*/
 	
+	printf("\nNow end\n");
 	printf("\n%d microseconds elapsed\n", micros() - starttime);
-	totalcount = zerocount + onecount;
-	printf("Now end\n");
+	
+	printf("\n");
+	for(i = 0; i < statecount; i++) {
+		printf("[%u: %d] ", readrawvalue[i], readrawinterval[i]);
+		
+		if(i > 1 && i < 82) {
+			if(readrawvalue[i] == HIGH) {
+				if(readrawinterval[i] <= 40) {
+					arr[j++] = 0;
+					zerocount += 1;
+				} else if(readrawinterval[i] >= 58) {
+					arr[j++] = 1;
+					onecount += 1;
+				} else {
+					printf("[last interval abnormal: %d] ", readrawinterval[i]);
+				}
+			}
+		}
+	}
+	printf("\n");
+	
+	printf("\n%d pin states read\n", statecount);
 	printf("Current pin status: %d\n\n", digitalRead(pin));
 	
-	pinMode(pin, OUTPUT);
-	digitalWrite(pin, HIGH);
+	validcount = zerocount + onecount;
+	printf("Read %d valid bits\n", validcount);
 	
-	for(i = 0; i < totalcount; i++) {
+	for(i = 0; i < validcount; i++) {
 		printf("%d ", arr[i]);
 		if((i+1) % 8 == 0) printf("\n");
 	}
 	
-	printf("\nRead %d bits, %d bits valid\n", bitcount, totalcount);
-	
-	if(totalcount < 40) {
+	printf("\n");
+	if(validcount < 40) {
 		printf("Less than 40 valid bits, now return error\n");
-		return -1;
+		return 0;
 	}
 	
-	i = 0;
+	i = j = 0;
 	while(i < 5) {
 		result[i] += arr[j];
 		if((j+1) % 8 != 0) {
@@ -169,15 +229,13 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 		} else {
 			i++;
 		}
-	j++;
+		j++;
 	}
 	
-	printf("\n");
-	
+	printf("Each 8 bits in decimal: ");
 	for(i = 0; i < 5; i++) {
 		printf("%u ", result[i]);
 	}
-	
 	printf("\n");
 	
 	pthread_mutex_lock(&lock);
@@ -188,7 +246,15 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 	sensorresult->sum = result[4];
 	pthread_mutex_unlock(&lock);
 	
-	//if(result[0] + result[2] != result[4]) printf("Warning: %d + %d != %d\n", result[0], result[2], result[4]);
+	if(result[0] + result[1] + result[2] + result[3] != result[4]) {
+		printf("%u + %u + %u + %u != %u, now return error\n", result[0], result[1], result[2], result[3], result[4]);
+		return 0;
+	}
+	
+	unsigned short rh = 0;
+	short temp = 0;
+	decodesensordata(sensorresult, &rh, &temp);
+	printf("decoded rh: %d, temperature: %u\n", rh, temp);
 	
 	return 1;
 }
@@ -349,11 +415,13 @@ void *ondemandresponsetcp(void *args) {
 
 int main(int argc, char *argv[]) {
     struct addrinfo hints, *res;
-    int gairet, sockfd, stret, resstrsize;
+    int gairet, sockfd, stret, resstrsize, decstrsize;
 	int pin = 4;
 	int responsesize = 24;
+	int retrycount = 0;
     char resstr[50];
-	char response[100];
+	char decstr[100];
+	char response[250];
 	char dstiptext[INET6_ADDRSTRLEN];
 	struct sensordata sensorres;
 	
@@ -420,29 +488,40 @@ int main(int argc, char *argv[]) {
 	
 	while(1) {
 		if(readsensor(pin, &sensorres)) {
-			if(sensorres.rhint + sensorres.tmpint == sensorres.sum || sensorres.rhint + sensorres.rhdec + sensorres.tmpint + sensorres.tmpdec == sensorres.sum) {
-				resstrsize = snprintf(resstr, sizeof(resstr), "\ntext %d %d %d %d %d\n", sensorres.rhint, sensorres.rhdec, sensorres.tmpint, sensorres.tmpdec, sensorres.sum);
-				
-				memcpy(response, &sensorres, sizeof(sensorres));
-				memcpy(response + sizeof(sensorres), resstr, resstrsize);
-				
-				responsesize = sizeof(sensorres) + resstrsize;
-				
-				argumentsudp.datalen = responsesize;
-				argumentstcp.datalen = responsesize;
-				
-				stret = sendto(sockfd, &response, responsesize, 0, res->ai_addr, res->ai_addrlen);
-				addrinfoiptotext(res, dstiptext, sizeof(dstiptext));
-				printf("sendto() returns %d, destination: %s:%d\n", stret, dstiptext, ntohs(get_in_port(res->ai_addr)));
-				if(stret == -1) {
-					perror("sendto()");
-				}
-				
-				printf("\n\n");
+			resstrsize = snprintf(resstr, sizeof(resstr), "\ntext %d %d %d %d %d\n", sensorres.rhint, sensorres.rhdec, sensorres.tmpint, sensorres.tmpdec, sensorres.sum);
+			
+			unsigned short rh = 0;
+			short temp = 0;
+			decodesensordata(&sensorres, &rh, &temp);
+			decstrsize = snprintf(decstr, sizeof(decstr), "decoded rh: %d\ntemp: %u\nretry: %d\n", rh, temp, retrycount);
+			
+			memcpy(response, &sensorres, sizeof(sensorres));
+			memcpy(response + sizeof(sensorres), resstr, resstrsize);
+			memcpy(response + sizeof(sensorres) + resstrsize, decstr, decstrsize);
+			
+			responsesize = sizeof(sensorres) + resstrsize + decstrsize;
+			
+			argumentsudp.datalen = responsesize;
+			argumentstcp.datalen = responsesize;
+			
+			printf("Successful reading after %d retry\n", retrycount);
+			
+			stret = sendto(sockfd, &response, responsesize, 0, res->ai_addr, res->ai_addrlen);
+			addrinfoiptotext(res, dstiptext, sizeof(dstiptext));
+			printf("sendto() returns %d, destination: %s:%d\n", stret, dstiptext, ntohs(get_in_port(res->ai_addr)));
+			if(stret == -1) {
+				perror("sendto()");
 			}
-		}
-		
-		sleep(10);
+			
+			printf("\n");
+			printf("Next reading in 10 seconds\n");
+			retrycount = 0;
+			sleep(10);
+		} else {
+			printf("%d retry already\n", retrycount++);
+			printf("Next retry in 5 seconds\n");
+			sleep(5);
+		}	
 	}
 	
     return 0;
