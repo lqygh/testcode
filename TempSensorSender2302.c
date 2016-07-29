@@ -114,20 +114,24 @@ int readsensor(int pin, struct sensordata* sensorresult) {
 		if(status != laststatus) {
 			interval = micros() - lasttime;
 			printf("[%u: %d] ", interval, laststatus);
+			
 			if(laststatus) {
 				bitcount++;
-				if(interval <= 30) {
-					arr[i] = 0;
-					i++;
-					zerocount++;
-				} else if (interval <= 75) {
-					arr[i] = 1;
-					i++;
-					onecount++;
-				} else {
-					printf("[abnormal interval: %d] ", interval);
+				if(bitcount >= 3) {
+					if(interval <= 30) {
+						arr[i] = 0;
+						i++;
+						zerocount++;
+					} else if (interval <= 75) {
+						arr[i] = 1;
+						i++;
+						onecount++;
+					} else {
+						printf("[abnormal interval: %d] ", interval);
+					}
 				}
 			} 
+			
 			lasttime = micros();
 			laststatus = status;
 		}
