@@ -246,8 +246,10 @@ int readsensor(int pin, struct sensordata *sensorresult) {
 	sensorresult->sum = result[4];
 	pthread_mutex_unlock(&lock);
 	
-	if(result[0] + result[1] + result[2] + result[3] != result[4]) {
+	unsigned char sum = result[0] + result[1] + result[2] + result[3];
+	if(sum != result[4]) {
 		printf("%u + %u + %u + %u != %u, now return error\n", result[0], result[1], result[2], result[3], result[4]);
+		printf("expected %u\n", sum);
 		return 0;
 	}
 	
