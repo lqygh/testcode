@@ -51,3 +51,6 @@ TempSensorSender2302:
 
 fgv:
 	gcc -Wall -Wextra -O3 fgv.c -o fgv
+
+srvka:
+	gcc -Wall -Wextra -O3 srvka.c -o srvka
