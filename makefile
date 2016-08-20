@@ -54,3 +54,6 @@ fgv:
 
 srvka:
 	gcc -Wall -Wextra -O3 srvka.c -o srvka
+
+srvqry:
+	gcc -Wall -Wextra -O3 srvqry.c -o srvqry
