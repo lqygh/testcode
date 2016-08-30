@@ -5,6 +5,7 @@
  *      Author: Administrator
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 
@@ -43,6 +44,11 @@ int main(int argc, char *argv[]) {
 	int number = 200;
 	int counter = 0;
 
+	if(argc >= 2) {
+		int num = (int)strtol(argv[1], NULL, 10);
+		number = (num >= 1) ? num : 200;
+	}
+	
 	pthread_t threads[number];
 	pthread_mutex_t lock;
 	struct args targs[number];
@@ -58,6 +64,7 @@ int main(int argc, char *argv[]) {
 			targs[i].lock = &lock;
 		}
 
+	printf("creating %d threads...\n", number);
 	for(int i = 0; i < number; i++) {
 		if(pthread_create(&threads[i], NULL, &incdec, &targs[i]) != 0) {
 			fprintf(stderr, "failed to create thread %d\n", i);
@@ -74,5 +81,6 @@ int main(int argc, char *argv[]) {
 
 	pthread_mutex_destroy(&lock);
 	printf("actual value of counter is %d\n", counter);
+	
 	return 0;
 }
