@@ -49,6 +49,9 @@ TempSensorSender:
 TempSensorSender2302:
 	gcc -Wall -Wextra -O3 TempSensorSender2302.c -lwiringPi -lpthread -o TempSensorSender2302
 
+mtnc:
+	gcc -Wall -Wextra -Werror -O3 mtnc.c -lpthread -o mtnc
+
 fgv:
 	gcc -Wall -Wextra -O3 fgv.c -o fgv
 
