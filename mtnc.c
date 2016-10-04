@@ -11,7 +11,11 @@
 struct net_args {
 	int id;
 	struct addrinfo* addrinfo;
-	pthread_mutex_t lock;
+	pthread_mutex_t* lock;
+	pthread_cond_t* cond;
+	pthread_barrier_t* barrier;
+	int* len;
+	char* data;
 };
 
 void print_usage(FILE* fp) {
@@ -27,69 +31,44 @@ void* net(void* arg) {
 	struct net_args* args = (struct net_args*) arg;
 	int id = args->id;
 	struct addrinfo* res = args->addrinfo;
-	pthread_mutex_t lock = args->lock;
+	pthread_mutex_t* lock = args->lock;
+	pthread_cond_t* cond = args->cond;
+	pthread_barrier_t* barrier = args->barrier;
+	int* len = args->len;
+	char* data = args->data;
 	
 	int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(sockfd == -1) {
-		pthread_mutex_lock(&lock);
+		pthread_mutex_lock(lock);
 		fprintf(stderr, "%d: socket() failed: %s\n", id, strerror(errno));
-		pthread_mutex_unlock(&lock);
+		pthread_mutex_unlock(lock);
 		
 		return NULL;
 	}
 	
 	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0) {
-		pthread_mutex_lock(&lock);
+		pthread_mutex_lock(lock);
 		fprintf(stderr, "%d: connect() failed: %s\n", id, strerror(errno));
-		pthread_mutex_unlock(&lock);
+		pthread_mutex_unlock(lock);
 		
 		close(sockfd);
 		return NULL;
 	}
 	
-	/*char* buffer = calloc(30, 1);
-	if(buffer == NULL) {
-		fprintf(stderr, "%d: calloc() failed\n", id);
-		
-		close(sockfd);
-		return NULL;
-	}*/
-	
-	//printf("%d: ready\n", args->id);
-	
-	//printf("%d: ptr arg is %p\n", args->id, arg);
-	//printf("%d: ptr addrinfo is %p\n", args->id, args->addrinfo);
-	
-	/*int len;
 	while(1) {
-		len = recv(args->fd, buffer, 30, 0);
-		if(len == -1) {
-			perror("recv()");
-			close(args->fd);
-			free(buffer);
-			printf("net thread ending\n");
-			return NULL;
-		}
+		//lock, wait, unlock
+		pthread_mutex_lock(lock);
+		pthread_cond_wait(cond, lock);
+		pthread_mutex_unlock(lock);
 		
-		if(len == 0 || buffer[0] == 'x') {
-			close(args->fd);
-			free(buffer);
-			printf("net thread exiting\n");
-			return NULL;
-		} else {
-			pthread_mutex_lock(args->largs->lock);
-			*(args->largs->shouldrun) = atoi(buffer);
-			pthread_cond_broadcast(args->largs->cond);
-			pthread_mutex_unlock(args->largs->lock);
-		}
+		//write to socket from buffer
+		send(sockfd, data, *len, 0);
 		
-	}*/
+		//barrier
+		pthread_barrier_wait(barrier);
+	}
 	
-	sleep(20);
-	
-	//printf("%d: ending\n", args->id);
 	close(sockfd);
-	//free(buffer);
 	
 	return NULL;
 }
@@ -149,19 +128,6 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(ret));
 		return 1;
 	}
-
-	/*if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
-    		perror("setsockopt()");
-	}
-		
-	pthread_t led_thread;
-	pthread_mutex_t lock;
-	pthread_cond_t cond;
-		
-	pthread_mutex_init(&lock, NULL);
-	pthread_cond_init(&cond, NULL);
-	
-	int shouldrun = 1;*/
 	
 	pthread_mutex_t lock;
 	if(pthread_mutex_init(&lock, NULL) != 0) {
@@ -171,12 +137,38 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
+	pthread_cond_t cond;
+	if(pthread_cond_init(&cond, NULL) != 0) {
+		fprintf(stderr, "pthread_cond_init() failed\n");
+		
+		freeaddrinfo(res);
+		pthread_mutex_destroy(&lock);
+		return 1;
+	}
+	
+	pthread_barrier_t barrier;
+	
 	pthread_t* net_threads = calloc(sizeof(pthread_t), thread_num);
 	struct net_args* nargs = calloc(sizeof(struct net_args), thread_num);
 	if(net_threads == NULL || nargs == NULL) {
 		fprintf(stderr, "calloc() failed\n");
 		
 		freeaddrinfo(res);
+		pthread_mutex_destroy(&lock);
+		pthread_cond_destroy(&cond);
+		free(net_threads);
+		free(nargs);
+		return 1;
+	}
+	
+	int len = 0, buffsize = 1000;
+	char* buffer = calloc(buffsize, 1);
+	if(buffer == NULL) {
+		fprintf(stderr, "calloc() failed\n");
+		
+		freeaddrinfo(res);
+		pthread_mutex_destroy(&lock);
+		pthread_cond_destroy(&cond);
 		free(net_threads);
 		free(nargs);
 		return 1;
@@ -188,9 +180,13 @@ int main(int argc, char* argv[]) {
 		struct net_args* narg = &nargs[i];
 		narg->id = i;
 		narg->addrinfo = res;
-		nargs->lock = lock;
-		
-		if(pthread_create(&net_threads[i], NULL, net, narg) != 0) {
+		narg->lock = &lock;
+		narg->cond = &cond;
+		narg->barrier = &barrier;
+		narg->len = &len;
+		narg->data = buffer;
+
+		if(pthread_create(&net_threads[i], NULL, net, &(nargs[i])) != 0) {
 			pthread_mutex_lock(&lock);
 			fprintf(stderr, "pthread_create() for %d failed: %s\n", i, strerror(errno));
 			pthread_mutex_unlock(&lock);
@@ -199,14 +195,46 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	
-	for(i = 0; i < created_threads; i++) {
-		pthread_join(net_threads[i], NULL);
+	if(pthread_barrier_init(&barrier, NULL, created_threads+1) != 0) {
+		fprintf(stderr, "pthread_barrier_init() failed\n");
+		
+		freeaddrinfo(res);
+		pthread_mutex_destroy(&lock);
+		pthread_cond_destroy(&cond);
+		free(net_threads);
+		free(nargs);
+		free(buffer);
+		return 1;
+	}
+	
+	
+	while(1) {
+		//read from stdin to buffer
+		len = read(0, buffer, buffsize);
+		if(len == 0) {
+			fprintf(stderr, "read() reaches end of file\n");
+			return 0;
+		} else if(len < 0) {
+			perror("read()");
+			return 1;
+		}
+		
+		//lock, broadcast, unlock
+		pthread_mutex_lock(&lock);
+		pthread_cond_broadcast(&cond);
+		pthread_mutex_unlock(&lock);
+		
+		//barrier
+		pthread_barrier_wait(&barrier);
 	}
 	
 	freeaddrinfo(res);
+	pthread_mutex_destroy(&lock);
+	pthread_cond_destroy(&cond);
 	free(net_threads);
 	free(nargs);
-	pthread_mutex_destroy(&lock);
+	free(buffer);
+	pthread_barrier_destroy(&barrier);
 	
 	return 0;
 }
