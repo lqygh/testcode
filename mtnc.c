@@ -16,6 +16,7 @@ struct net_args {
 	pthread_barrier_t* barrier;
 	int* len;
 	char* data;
+	int* ready;
 };
 
 void print_usage(FILE* fp) {
@@ -36,6 +37,7 @@ void* net(void* arg) {
 	pthread_barrier_t* barrier = args->barrier;
 	int* len = args->len;
 	char* data = args->data;
+	int* ready = args->ready;
 	
 	int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(sockfd == -1) {
@@ -58,7 +60,9 @@ void* net(void* arg) {
 	while(1) {
 		//lock, wait, unlock
 		pthread_mutex_lock(lock);
-		pthread_cond_wait(cond, lock);
+		while(!(*ready)){
+			pthread_cond_wait(cond, lock);
+		}
 		pthread_mutex_unlock(lock);
 		
 		//write to socket from buffer
@@ -174,7 +178,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
-	int i = 0;
+	int i = 0, ready = 0;
 	int created_threads = 0;
 	for(i = 0; i < thread_num; i++) {
 		struct net_args* narg = &nargs[i];
@@ -185,6 +189,7 @@ int main(int argc, char* argv[]) {
 		narg->barrier = &barrier;
 		narg->len = &len;
 		narg->data = buffer;
+		narg->ready = &ready;
 
 		if(pthread_create(&net_threads[i], NULL, net, &(nargs[i])) != 0) {
 			pthread_mutex_lock(&lock);
@@ -207,7 +212,6 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
-	
 	while(1) {
 		//read from stdin to buffer
 		len = read(0, buffer, buffsize);
@@ -221,11 +225,14 @@ int main(int argc, char* argv[]) {
 		
 		//lock, broadcast, unlock
 		pthread_mutex_lock(&lock);
+		ready = 1;
 		pthread_cond_broadcast(&cond);
 		pthread_mutex_unlock(&lock);
 		
 		//barrier
 		pthread_barrier_wait(&barrier);
+		
+		ready = 0;
 	}
 	
 	freeaddrinfo(res);
