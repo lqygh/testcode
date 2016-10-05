@@ -516,13 +516,13 @@ int main(int argc, char *argv[]) {
 			}
 			
 			printf("\n");
-			printf("Next reading in 10 seconds\n");
+			printf("Next reading in 60 seconds\n");
 			retrycount = 0;
-			sleep(10);
+			sleep(60);
 		} else {
 			printf("%d retry already\n", retrycount++);
-			printf("Next retry in 5 seconds\n");
-			sleep(5);
+			printf("Next retry in 30 seconds\n");
+			sleep(30);
 		}	
 	}
 	
