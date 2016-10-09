@@ -55,6 +55,9 @@ mtnc:
 slonc:
 	gcc -Wall -Wextra -Werror -O3 slonc.c -lpthread -o slonc
 
+closefd:
+	gcc -Wall -Wextra -Werror -O3 closefd.c -lpthread -o closefd
+
 fgv:
 	gcc -Wall -Wextra -O3 fgv.c -o fgv
 
