@@ -52,6 +52,9 @@ TempSensorSender2302:
 mtnc:
 	gcc -Wall -Wextra -Werror -O3 mtnc.c -lpthread -o mtnc
 
+slonc:
+	gcc -Wall -Wextra -Werror -O3 slonc.c -lpthread -o slonc
+
 fgv:
 	gcc -Wall -Wextra -O3 fgv.c -o fgv
 
