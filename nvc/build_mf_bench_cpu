@@ -1,0 +1,5 @@
+gcc -O0 -Wall -Wextra mf_bench.c mf_cpu.c -o mf_bench_cpu_o0
+gcc -O1 -Wall -Wextra mf_bench.c mf_cpu.c -o mf_bench_cpu_o1
+gcc -O2 -Wall -Wextra mf_bench.c mf_cpu.c -o mf_bench_cpu_o2
+gcc -O3 -Wall -Wextra mf_bench.c mf_cpu.c -o mf_bench_cpu_o3
+
