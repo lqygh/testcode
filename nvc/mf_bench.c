@@ -5,7 +5,7 @@
 #include "mf.h"
 
 #define NUM_LOOPS 1
-#define BUFFER_SIZE 1000000000
+#define BUFFER_SIZE 100000000
 
 int main(int argc, char* argv[]) {
 	int m_loops = 1;
