@@ -1,3 +1,9 @@
+hook:
+	gcc -shared -fPIC -O3 -Wall -Wextra recvfrom_hook.c -ldl -o recvfrom_hook.so
+
+hook32:
+	gcc -shared -fPIC -O3 -Wall -Wextra -m32 recvfrom_hook.c -ldl -o recvfrom_hook.so
+
 np:
 	gcc -O3 np.c -o np
 
