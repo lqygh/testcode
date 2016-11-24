@@ -4,7 +4,7 @@
 int main(int argc, char* argv[]) {
 	int loopnum = 1000000;
 	int i = 0;
-	char coin;
+	signed char coin;
 	int win[3] = {0};
 	
 	FILE* randsrc;
