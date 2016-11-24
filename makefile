@@ -1,3 +1,9 @@
+montedice:
+	gcc -O3 -Wall -Wextra montedice.c -o montedice
+
+monte:
+	gcc -O3 -Wall -Wextra monte.c -o monte
+
 hook:
 	gcc -shared -fPIC -O3 -Wall -Wextra recvfrom_hook.c -ldl -o recvfrom_hook.so
 
