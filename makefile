@@ -40,6 +40,9 @@ ex4q7:
 templogger:
 	gcc -O3 -Wall templogger.c -o templogger
 
+mmapsizeoffset:
+	gcc -Wall -O3 mmapsizeoffset.c -o mmapsizeoffset
+
 mmapread:
 	gcc -Wall -O3 mmapread.c -o mmapread
 
