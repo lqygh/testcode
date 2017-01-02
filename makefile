@@ -1,3 +1,6 @@
+nclient:
+	gcc -O3 -Wall -Wextra nclient.c netutil/netutil.c -lpthread -o nclient
+
 sdl0:
 	gcc -O3 -Wall sdl0.c `sdl2-config --cflags --libs` -o sdl0
 
