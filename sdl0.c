@@ -1,5 +1,22 @@
 #include <SDL.h>
 
+struct coordinate_3d {
+	int x;
+	int y;
+	int z;
+};
+
+struct coordinate_2d {
+	int x;
+	int y;
+};
+
+struct triangle {
+	struct coordinate_3d v1;
+	struct coordinate_3d v2;
+	struct coordinate_3d v3;
+};
+
 struct draw_state {
 	int width;
 	int height;
@@ -14,12 +31,61 @@ struct draw_thread_args {
 	Uint8* delay;
 	Uint64* framecount;
 	struct draw_state* dstate;
+	struct coordinate_2d* window_size;
 	SDL_Renderer* renderer;
+	struct triangle* triangle;
 };
+
+void move_triangle(struct triangle* triangle, struct coordinate_3d movement) {
+	triangle->v1.x = triangle->v1.x + movement.x;
+	triangle->v1.y = triangle->v1.y + movement.y;
+	triangle->v1.z = triangle->v1.z + movement.z;
+	
+	triangle->v2.x = triangle->v2.x + movement.x;
+	triangle->v2.y = triangle->v2.y + movement.y;
+	triangle->v2.z = triangle->v2.z + movement.z;
+	
+	triangle->v3.x = triangle->v3.x + movement.x;
+	triangle->v3.y = triangle->v3.y + movement.y;
+	triangle->v3.z = triangle->v3.z + movement.z;
+}
+
+void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coordinate_2d* window_size) {
+	if(window_size->x <= 0 || window_size->y <= 0) {
+		printf("width and height must be positive\n");
+		return;
+	}
+	
+	int i, j;
+	double barycentric[3];
+	for(i = 0; i < window_size->x; i++) {
+		for(j = 0; j < window_size->y; j++) {
+			barycentric[0] = (double)((triangle->v2.y - triangle->v3.y) * (i - triangle->v3.x) + (triangle->v3.x - triangle->v2.x) * (j - triangle->v3.y)) /
+			                 ((triangle->v2.y - triangle->v3.y) * (triangle->v1.x - triangle->v3.x) + (triangle->v3.x - triangle->v2.x) * (triangle->v1.y - triangle->v3.y));
+			
+			barycentric[1] = (double)((triangle->v3.y - triangle->v1.y) * (i - triangle->v3.x) + (triangle->v1.x - triangle->v3.x) * (j - triangle->v3.y)) /
+			                 ((triangle->v2.y - triangle->v3.y) * (triangle->v1.x - triangle->v3.x) + (triangle->v3.x - triangle->v2.x) * (triangle->v1.y - triangle->v3.y));
+			
+			barycentric[2] = 1 - barycentric[0] - barycentric[1];
+			
+			if(barycentric[0] >= 0 && barycentric[0] <= 1 && barycentric[1] >= 0 && barycentric[1] <= 1 && barycentric[2] >= 0 && barycentric[2] <= 1) {
+				if(SDL_SetRenderDrawColor(renderer, barycentric[0] * 255, barycentric[1] * 255, barycentric[2] * 255, 255) < 0) {
+					printf("Failed to set renderer color: %s\n", SDL_GetError());
+					return;
+				}
+	
+				if(SDL_RenderDrawPoint(renderer, i, j) < 0) {
+					printf("Failed to draw point: %s\n", SDL_GetError());
+					return;
+				}
+			}
+		}
+	}
+}
 
 void myupdate(struct draw_state* state) {
 	if(state->width <= 0 || state->height <= 0) {
-		fprintf(stderr, "width and height must be positive\n");
+		printf("width and height must be positive\n");
 		return;
 	}
 	
@@ -68,8 +134,9 @@ int draw_thread(void* arg) {
 	Uint8* delay = args->delay;
 	Uint64* framecount = args->framecount;
 	struct draw_state* dstate = args->dstate;
+	struct coordinate_2d* window_size = args->window_size;
 	SDL_Renderer* renderer = args->renderer;
-	
+	struct triangle* triangle = args->triangle;
 	
 	args->should_run = 1;
 	while(args->should_run) {
@@ -85,12 +152,16 @@ int draw_thread(void* arg) {
 			return -1;
 		}
 		
-		//update here
+		//draw triangle
+		draw_triangle(renderer, triangle, window_size);
+		
+		//update point
 		myupdate(dstate);
 		
-		//draw here
+		//draw point
 		mydraw(renderer, dstate);
 		
+		//update screen
 		SDL_RenderPresent(renderer);
 		
 		(*framecount)++;
@@ -141,7 +212,10 @@ int main(int argc, char* argv[]) {
 	srand(SDL_GetTicks());
 	struct draw_state dstate = {width, height, rand()%width, rand()%height, (rand()%15)+1, (rand()%15)+1};
 	
-	struct draw_thread_args dtargs = {1, &delay, &i, &dstate, renderer};
+	struct coordinate_2d window_size = {width, height};
+	struct triangle triangle = {{100, 350, 999}, {200, 150, 666}, {300, 350, 333}};
+	struct draw_thread_args dtargs = {1, &delay, &i, &dstate, &window_size, renderer, &triangle};
+	
 	SDL_Thread* dtthread = SDL_CreateThread(draw_thread, "draw_thread", &dtargs);
 	if(dtthread == NULL) {
 		printf("Failed to create draw thread: %s\n", SDL_GetError());
@@ -151,6 +225,7 @@ int main(int argc, char* argv[]) {
 	SDL_Event event;
 	while(dtargs.should_run) {
 		if(SDL_WaitEvent(&event) == 1) {
+			
 			if(event.type == SDL_QUIT) {
 				printf("\nSDL_QUIT event occurred\n");
 				break;
@@ -161,8 +236,30 @@ int main(int argc, char* argv[]) {
 				} else if(ev->y < 0) {
 					delay -= 1;
 				}
-			} else if(event.type == SDL_KEYUP) {
-				delay += 1;
+			} else if(event.type == SDL_KEYDOWN) {
+				SDL_KeyboardEvent* ev = &(event.key);
+				struct coordinate_3d mov;
+				if(ev->keysym.sym == SDLK_UP) {
+					mov = (struct coordinate_3d){0, -1, 0};
+					move_triangle(&triangle, mov);
+				} else if(ev->keysym.sym == SDLK_DOWN) {
+					mov = (struct coordinate_3d){0, 1, 0};
+					move_triangle(&triangle, mov);
+				} else if(ev->keysym.sym == SDLK_LEFT) {
+					mov = (struct coordinate_3d){-1, 0, 0};
+					move_triangle(&triangle, mov);
+				} else if(ev->keysym.sym == SDLK_RIGHT) {
+					mov = (struct coordinate_3d){1, 0, 0};
+					move_triangle(&triangle, mov);
+				} else if(ev->keysym.sym == SDLK_COMMA) {
+					mov = (struct coordinate_3d){0, 0, 1};
+					move_triangle(&triangle, mov);
+				} else if(ev->keysym.sym == SDLK_PERIOD) {
+					mov = (struct coordinate_3d){0, 0, -1};
+					move_triangle(&triangle, mov);
+				} else {
+					delay += 1;
+				}
 			}
 			
 			printf("\r                                        ");
