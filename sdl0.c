@@ -6,6 +6,12 @@ struct coordinate_3d {
 	int z;
 };
 
+struct coordinate_3df {
+	double x;
+	double y;
+	double z;
+};
+
 struct coordinate_2d {
 	int x;
 	int y;
@@ -15,6 +21,12 @@ struct triangle {
 	struct coordinate_3d v1;
 	struct coordinate_3d v2;
 	struct coordinate_3d v3;
+};
+
+struct trianglef {
+	struct coordinate_3df v1;
+	struct coordinate_3df v2;
+	struct coordinate_3df v3;
 };
 
 struct draw_state {
@@ -33,10 +45,54 @@ struct draw_thread_args {
 	struct draw_state* dstate;
 	struct coordinate_2d* window_size;
 	SDL_Renderer* renderer;
-	struct triangle* triangle;
+	struct trianglef* triangle;
 };
 
-void move_triangle(struct triangle* triangle, struct coordinate_3d movement) {
+void translate(struct coordinate_3df* input, struct coordinate_3df* output, struct coordinate_3df* movement) {
+	output->x = input->x + movement->x;
+	output->y = input->y + movement->y;
+	output->z = input->z + movement->z;
+}
+
+//currently rotate by a fixed degree only
+void rotate(struct coordinate_3df* input, struct coordinate_3df* output, int axis) {
+	double i[3] = {input->x, input->y, input->z};
+	double o[3];
+	
+	double sin = 0.01745240644;
+	double cos = 0.99984769516;
+	
+	if(axis == 0) {
+		//rotate about x axis
+		o[0] = i[0];
+		o[1] = i[1] * cos - i[2] * sin;
+		o[2] = i[1] * sin + i[2] * cos;
+	} else if(axis == 1) {
+		//rotate about y axis
+		o[0] = i[0] * cos + i[2] * sin;
+		o[1] = i[1];
+		o[2] = i[0] * (-sin) + i[2] * cos;
+	} else if(axis == 2) {
+		//rotate about z axis
+		o[0] = i[0] * cos - i[1] * sin;
+		o[1] = i[0] * sin + i[1] * cos;
+		o[2] = i[2];
+	} else {
+		return;
+	}
+	
+	output->x = o[0];
+	output->y = o[1];
+	output->z = o[2];
+}
+
+void scale(struct coordinate_3df* input, struct coordinate_3df* output, double factor) {
+	output->x = (input->x) * factor;
+	output->y = (input->y) * factor;
+	output->z = (input->z) * factor;
+}
+
+void move_triangle(struct trianglef* triangle, struct coordinate_3df movement) {
 	triangle->v1.x = triangle->v1.x + movement.x;
 	triangle->v1.y = triangle->v1.y + movement.y;
 	triangle->v1.z = triangle->v1.z + movement.z;
@@ -50,7 +106,19 @@ void move_triangle(struct triangle* triangle, struct coordinate_3d movement) {
 	triangle->v3.z = triangle->v3.z + movement.z;
 }
 
-void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coordinate_2d* window_size) {
+void rotate_triangle(struct trianglef* triangle, int axis) {	
+	rotate(&(triangle->v1), &(triangle->v1), axis);
+	rotate(&(triangle->v2), &(triangle->v2), axis);
+	rotate(&(triangle->v3), &(triangle->v3), axis);
+}
+
+void scale_triangle(struct trianglef* triangle, double factor) {
+	scale(&(triangle->v1), &(triangle->v1), factor);
+	scale(&(triangle->v2), &(triangle->v2), factor);
+	scale(&(triangle->v3), &(triangle->v3), factor);
+}
+
+void draw_triangle(SDL_Renderer* renderer, struct trianglef* triangle, struct coordinate_2d* window_size) {
 	if(window_size->x <= 0 || window_size->y <= 0) {
 		printf("width and height must be positive\n");
 		return;
@@ -136,7 +204,7 @@ int draw_thread(void* arg) {
 	struct draw_state* dstate = args->dstate;
 	struct coordinate_2d* window_size = args->window_size;
 	SDL_Renderer* renderer = args->renderer;
-	struct triangle* triangle = args->triangle;
+	struct trianglef* triangle = args->triangle;
 	
 	args->should_run = 1;
 	while(args->should_run) {
@@ -213,7 +281,7 @@ int main(int argc, char* argv[]) {
 	struct draw_state dstate = {width, height, rand()%width, rand()%height, (rand()%15)+1, (rand()%15)+1};
 	
 	struct coordinate_2d window_size = {width, height};
-	struct triangle triangle = {{100, 350, 999}, {200, 150, 666}, {300, 350, 333}};
+	struct trianglef triangle = {{100, 250, 0}, {200, 200, 0}, {300, 250, 0}};
 	struct draw_thread_args dtargs = {1, &delay, &i, &dstate, &window_size, renderer, &triangle};
 	
 	SDL_Thread* dtthread = SDL_CreateThread(draw_thread, "draw_thread", &dtargs);
@@ -238,25 +306,30 @@ int main(int argc, char* argv[]) {
 				}
 			} else if(event.type == SDL_KEYDOWN) {
 				SDL_KeyboardEvent* ev = &(event.key);
-				struct coordinate_3d mov;
 				if(ev->keysym.sym == SDLK_UP) {
-					mov = (struct coordinate_3d){0, -1, 0};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){0, -10, 0});
 				} else if(ev->keysym.sym == SDLK_DOWN) {
-					mov = (struct coordinate_3d){0, 1, 0};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){0, 10, 0});
 				} else if(ev->keysym.sym == SDLK_LEFT) {
-					mov = (struct coordinate_3d){-1, 0, 0};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){-10, 0, 0});
 				} else if(ev->keysym.sym == SDLK_RIGHT) {
-					mov = (struct coordinate_3d){1, 0, 0};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){10, 0, 0});
 				} else if(ev->keysym.sym == SDLK_COMMA) {
-					mov = (struct coordinate_3d){0, 0, 1};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){0, 0, -10});
 				} else if(ev->keysym.sym == SDLK_PERIOD) {
-					mov = (struct coordinate_3d){0, 0, -1};
-					move_triangle(&triangle, mov);
+					move_triangle(&triangle, (struct coordinate_3df){0, 0, 10});
+				} else if(ev->keysym.sym == SDLK_1) {
+					rotate_triangle(&triangle, 0);
+				} else if(ev->keysym.sym == SDLK_2) {
+					rotate_triangle(&triangle, 1);
+				} else if(ev->keysym.sym == SDLK_3) {
+					rotate_triangle(&triangle, 2);
+				} else if(ev->keysym.sym == SDLK_w) {
+					scale_triangle(&triangle, 1.01);
+				} else if(ev->keysym.sym == SDLK_s) {
+					scale_triangle(&triangle, 0.990099);
+				} else if(ev->keysym.sym == SDLK_r) {
+					triangle = (struct trianglef){{100, 250, 0}, {200, 200, 0}, {300, 250, 0}};
 				} else {
 					delay += 1;
 				}
