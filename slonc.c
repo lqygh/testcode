@@ -18,12 +18,12 @@ void print_usage(FILE* fp) {
 	fprintf(fp, "  -h\t\tshow usage\n");
 	fprintf(fp, "  -s\t\tspecify server hostname\n");
 	fprintf(fp, "  -p\t\tspecify server port\n");
-	fprintf(fp, "  -d\t\tspecify delay in seconds(optional)\n");
+	fprintf(fp, "  -d\t\tspecify delay in milliseconds(optional)\n");
 	fprintf(fp, "\n");
 }
 
 void* net_receiver(void* arg) {	
-	struct net_receiver_args* args = (struct net_receiver_args*) arg;
+	struct net_receiver_args* args = (struct net_receiver_args*)arg;
 	int sockfd = args->sockfd;
 	
 	char buffer[100] = {0};
@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
 				break;
 			case 'd':
 				dflag = 1;
-				delay = atoi(optarg);
+				delay = atoi(optarg) * 1000;
 				break;
 			default:
 				print_usage(stderr);
@@ -157,21 +157,20 @@ int main(int argc, char* argv[]) {
 		len = read(0, buffer, buffsize);
 		if(len == 0) {
 			fprintf(stderr, "read() reaches end of file\n");
-			pthread_join(net_receiver_thread, NULL);
-			return 0;
+			break;
 		} else if(len < 0) {
 			perror("read()");
-			return 1;
+			break;
 		} else {
 			//send from buffer to socket
 			for(i = 0; i < len; i++) {
 				//delay
-				sleep(delay);
-				//send byte by byte
+				usleep(delay);
+				//send one byte at a time for slowness
 				sent = send(sockfd, &buffer[i], 1, 0);
 				if(sent == -1) {
 					perror("send()");
-					return 1;
+					break;
 				} else if(sent == 0) {
 					//resend that byte
 					i--;
@@ -179,6 +178,10 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
+	
+	shutdown(sockfd, SHUT_WR);
+	pthread_join(net_receiver_thread, NULL);
+	shutdown(sockfd, SHUT_RD);
 	
 	freeaddrinfo(res);
 	free(buffer);

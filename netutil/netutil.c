@@ -40,6 +40,7 @@ in_port_t get_in_port(struct sockaddr* sa) {
 }
 
 int is_ip_same(struct sockaddr* a, struct sockaddr* b) {
+	//IPv4 case
 	if(a->sa_family == AF_INET && b->sa_family == AF_INET) {
 		struct sockaddr_in* aa = (struct sockaddr_in*) a;
 		struct sockaddr_in* bb = (struct sockaddr_in*) b;
@@ -50,6 +51,7 @@ int is_ip_same(struct sockaddr* a, struct sockaddr* b) {
 		}
 	}
 	
+	//IPv6 case
 	if(a->sa_family == AF_INET6 && b->sa_family == AF_INET6) {
 		struct sockaddr_in6* aa = (struct sockaddr_in6*) a;
 		struct sockaddr_in6* bb = (struct sockaddr_in6*) b;
@@ -137,18 +139,22 @@ int create_udp_server_socket(char* port) {
 	int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(fd == -1) {
 		//perror("socket()");
+		freeaddrinfo(res);
 		return -1;
 	}
 	
 	//necessary to ensure dual stack mode is enabled on some platforms
 	int mode = 0;
-	setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&mode, sizeof(mode));
+	setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &mode, sizeof(mode));
 	
 	ret = bind(fd, res->ai_addr, res->ai_addrlen);
 	if(ret != 0) {
 		//perror("bind()");
+		close(fd);
+		freeaddrinfo(res);
 		return -1;
 	}
 	
+	freeaddrinfo(res);
 	return fd;
 }
