@@ -1,15 +1,15 @@
 #include <SDL.h>
 
+struct coordinate_2d {
+	int x;
+	int y;
+};
+
 struct coordinate_3d {
 	double x;
 	double y;
 	double z;
 	double w;
-};
-
-struct coordinate_2d {
-	int x;
-	int y;
 };
 
 struct triangle {
@@ -38,10 +38,11 @@ struct draw_thread_args {
 	int should_run;
 	Uint8* delay;
 	Uint64* framecount;
-	struct bouncing_point_state* bpstate;
-	struct coordinate_2d* window_size;
 	SDL_Renderer* renderer;
+	struct coordinate_2d* window_size;
+	struct bouncing_point_state* bpstate;
 	struct triangles* triangles;
+	double* zbuffer;
 };
 
 void translate(struct coordinate_3d* input, struct coordinate_3d* output, struct coordinate_3d* movement) {
@@ -140,7 +141,7 @@ void perspective_vertices(struct coordinate_3d* vertices, int number, double amo
 	}
 }
 
-void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coordinate_2d* window_size) {
+void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coordinate_2d* window_size, double* zbuffer) {
 	/* if(window_size->x <= 0 || window_size->y <= 0) {
 		printf("width and height must be positive\n");
 		return;
@@ -206,13 +207,22 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 			
 			//SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 			
-			if(barycentric[0] > 0 && barycentric[0] < 1 && barycentric[1] > 0 && barycentric[1] < 1 && barycentric[2] > 0 && barycentric[2] < 1) {
-				if(SDL_SetRenderDrawColor(renderer, barycentric[0] * 255, barycentric[1] * 255, barycentric[2] * 255, 255) < 0) {
-					printf("Failed to set renderer color: %s\n", SDL_GetError());
-					return;
+			if(barycentric[0] > 0 && barycentric[0] < 1 && barycentric[1] > 0 && barycentric[1] < 1 && barycentric[2] > 0 && barycentric[2] < 1) {				
+				//z-buffer checking
+				double z_coord = barycentric[0] * tri.v1.z + barycentric[1] * tri.v2.z + barycentric[2] * tri.v3.z;
+				if(z_coord > zbuffer[i + j * window_size->x]) {
+					continue;
+				} else {
+					zbuffer[i + j * window_size->x] = z_coord;
 				}
 				
-				/* double z_coord = barycentric[0] * tri.v1.z + barycentric[1] * tri.v2.z + barycentric[2] * tri.v3.z;
+				//SDL_SetRenderDrawColor(renderer, barycentric[0] * 255, barycentric[1] * 255, barycentric[2] * 255, 255);
+				
+				/* if(SDL_SetRenderDrawColor(renderer, barycentric[0] * 255, barycentric[1] * 255, barycentric[2] * 255, 255) < 0) {
+					printf("Failed to set renderer color: %s\n", SDL_GetError());
+					return;
+				} */
+				
 				double z_fac = 1.0;
 				if(z_coord > 1000.0) {
 					z_fac = 0;
@@ -225,7 +235,7 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 				if(SDL_SetRenderDrawColor(renderer, col, col, col, 255) < 0) {
 					printf("Failed to set renderer color: %s\n", SDL_GetError());
 					return;
-				} */
+				}
 				
 				/* if(SDL_SetRenderDrawColor(renderer, barycentric[0] * z_fac * 255, barycentric[1] * z_fac * 255, barycentric[2] * z_fac * 255, 255) < 0) {
 					printf("Failed to set renderer color: %s\n", SDL_GetError());
@@ -248,7 +258,7 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 	}
 }
 
-void draw_triangles(SDL_Renderer* renderer, struct triangles* triangles, struct coordinate_2d* window_size) {
+void draw_triangles(SDL_Renderer* renderer, struct triangles* triangles, struct coordinate_2d* window_size, double* zbuffer) {
 	struct coordinate_3d* vertices = triangles->vertices;
 	//int num_vertices = triangles->num_vertices;
 	int* triangle_vertices_indices = triangles->triangle_vertices_indices;
@@ -261,7 +271,7 @@ void draw_triangles(SDL_Renderer* renderer, struct triangles* triangles, struct 
 		tri.v2 = vertices[triangle_vertices_indices[i*3+1]];
 		tri.v3 = vertices[triangle_vertices_indices[i*3+2]];
 		
-		draw_triangle(renderer, &tri, window_size);
+		draw_triangle(renderer, &tri, window_size, zbuffer);
 	}
 }
 
@@ -334,10 +344,11 @@ int draw_thread(void* arg) {
 	struct draw_thread_args* args = (struct draw_thread_args*)arg;
 	Uint8* delay = args->delay;
 	Uint64* framecount = args->framecount;
-	struct bouncing_point_state* bpstate = args->bpstate;
-	struct coordinate_2d* window_size = args->window_size;
 	SDL_Renderer* renderer = args->renderer;
+	struct coordinate_2d* window_size = args->window_size;
+	struct bouncing_point_state* bpstate = args->bpstate;
 	struct triangles* triangles = args->triangles;
+	double* zbuffer = args->zbuffer;
 	
 	args->should_run = 1;
 	while(args->should_run) {
@@ -353,8 +364,14 @@ int draw_thread(void* arg) {
 			return -1;
 		}
 		
+		//clear z-buffer
+		int i = 0;
+		for(i = 0; i < window_size->x * window_size->y; i++) {
+			zbuffer[i] = INFINITY;
+		}
+		
 		//draw triangles
-		draw_triangles(renderer, triangles, window_size);
+		draw_triangles(renderer, triangles, window_size, zbuffer);
 		
 		//draw lines
 		draw_lines(renderer, triangles);
@@ -370,7 +387,7 @@ int draw_thread(void* arg) {
 		
 		(*framecount)++;
 		
-		SDL_Delay((*delay));
+		SDL_Delay(*delay);
 	}
 	
 	args->should_run = 0;
@@ -393,6 +410,17 @@ int main(int argc, char* argv[]) {
 	printf("Amount of RAM in MB: %d\n", SDL_GetSystemRAM());
 	printf("Number of logical CPU cores: %d\n", SDL_GetCPUCount());
 
+	double* zbuffer = malloc(width * height * sizeof(double));
+	if(zbuffer == NULL) {
+		printf("Failed to allocate memory for z-buffer\n");
+		return 1;
+	} else {
+		int i = 0;
+		for(i = 0; i < width * height; i++) {
+			zbuffer[i] = INFINITY;
+		}
+	}
+		
 	if(SDL_Init(SDL_INIT_VIDEO) != 0) {
 		printf("Failed to init SDL: %s\n", SDL_GetError());
 		return 1;
@@ -442,7 +470,7 @@ int main(int argc, char* argv[]) {
 	triangles.triangle_vertices_indices = tvindices;
 	triangles.num_triangles = num_triangles;
 	
-	struct draw_thread_args dtargs = {1, &delay, &i, &bpstate, &window_size, renderer, &triangles};
+	struct draw_thread_args dtargs = {1, &delay, &i, renderer, &window_size, &bpstate, &triangles, zbuffer};
 	
 	SDL_Thread* dtthread = SDL_CreateThread(draw_thread, "draw_thread", &dtargs);
 	if(dtthread == NULL) {
