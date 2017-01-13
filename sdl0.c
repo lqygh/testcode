@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include "matrix/matrix.h"
 
 struct coordinate_2d {
 	int x;
@@ -85,9 +86,9 @@ void scale(struct coordinate_3d* input, struct coordinate_3d* output, double fac
 	output->z = (input->z) * factor;
 }
 
-void perspective(struct coordinate_3d* input, struct coordinate_3d* output, double amount) {
+/* void perspective(struct coordinate_3d* input, struct coordinate_3d* output, double amount) {
 	output->w = (input->w) + amount;
-}
+} */
 
 void translate_triangle(struct triangle* triangle, struct coordinate_3d movement) {
 	translate(&(triangle->v1), &(triangle->v1), &movement);
@@ -107,11 +108,11 @@ void scale_triangle(struct triangle* triangle, double factor) {
 	scale(&(triangle->v3), &(triangle->v3), factor);
 }
 
-void perspective_triangle(struct triangle* triangle, double amount) {
+/* void perspective_triangle(struct triangle* triangle, double amount) {
 	perspective(&(triangle->v1), &(triangle->v1), amount);
 	perspective(&(triangle->v2), &(triangle->v2), amount);
 	perspective(&(triangle->v3), &(triangle->v3), amount);
-}
+} */
 
 void translate_vertices(struct coordinate_3d* vertices, int number, struct coordinate_3d movement) {
 	int i;
@@ -134,12 +135,12 @@ void scale_vertices(struct coordinate_3d* vertices, int number, double factor) {
 	}
 }
 
-void perspective_vertices(struct coordinate_3d* vertices, int number, double amount) {
+/* void perspective_vertices(struct coordinate_3d* vertices, int number, double amount) {
 	int i;
 	for(i = 0; i < number; i++) {
 		perspective(&(vertices[i]), &(vertices[i]), amount);
 	}
-}
+} */
 
 void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coordinate_2d* window_size, double* zbuffer) {
 	/* if(window_size->x <= 0 || window_size->y <= 0) {
@@ -151,7 +152,7 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 		return;
 	}
 	
-	//normalise coordinates
+	/* //normalise coordinates
 	struct triangle tri;
 	tri.v1.x = (triangle->v1.x) / (triangle->v1.w);
 	tri.v1.y = (triangle->v1.y) / (triangle->v1.w);
@@ -161,8 +162,8 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 	tri.v2.z = (triangle->v2.z) / (triangle->v2.w);
 	tri.v3.x = (triangle->v3.x) / (triangle->v3.w);
 	tri.v3.y = (triangle->v3.y) / (triangle->v3.w);
-	tri.v3.z = (triangle->v3.z) / (triangle->v3.w);
-	
+	tri.v3.z = (triangle->v3.z) / (triangle->v3.w); */
+	struct triangle tri = *triangle;
 	
 	//find the bounding box of the triangle
 	double min_x = window_size->x;
@@ -181,7 +182,6 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 	if(tri.v1.y > max_y) max_y = tri.v1.y;
 	if(tri.v2.y > max_y) max_y = tri.v2.y;
 	if(tri.v3.y > max_y) max_y = tri.v3.y;
-	
 	int min_x_int = (int)min_x;
 	int max_x_int = (int)max_x;
 	int min_y_int = (int)min_y;
@@ -210,7 +210,7 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 			if(barycentric[0] > 0 && barycentric[0] < 1 && barycentric[1] > 0 && barycentric[1] < 1 && barycentric[2] > 0 && barycentric[2] < 1) {				
 				//z-buffer checking
 				double z_coord = barycentric[0] * tri.v1.z + barycentric[1] * tri.v2.z + barycentric[2] * tri.v3.z;
-				if(z_coord > zbuffer[i + j * window_size->x]) {
+				if(z_coord <= 0 || z_coord > zbuffer[i + j * window_size->x]) {
 					continue;
 				} else {
 					zbuffer[i + j * window_size->x] = z_coord;
@@ -246,6 +246,82 @@ void draw_triangle(SDL_Renderer* renderer, struct triangle* triangle, struct coo
 					printf("Failed to draw point: %s\n", SDL_GetError());
 					return;
 				} */
+				
+				SDL_RenderDrawPoint(renderer, i, j);
+				
+				drawn = 1;
+			} else if(drawn == 1) {
+				//skip the rest of this row
+				break;
+			}
+		}
+	}
+}
+
+void draw_triangle2(SDL_Renderer* renderer, struct vector3i* v0, struct vector3i* v1, struct vector3i* v2, int window_width, int window_height, double* zbuffer) {
+	if(triangle->v1.w == 0 || triangle->v2.w == 0 || triangle->v3.w == 0) {
+		return;
+	}
+	
+	//find the bounding box of the triangle
+	int min_x = window_width;
+	int max_x = 0;
+	int min_y = window_height;
+	int max_y = 0;
+	if(v1->x < min_x) min_x = v1->x;
+	if(v2->x < min_x) min_x = v2->x;
+	if(v3->x < min_x) min_x = v3->x;
+	if(v1->x > max_x) max_x = v1->x;
+	if(v2->x > max_x) max_x = v2->x;
+	if(v3->x > max_x) max_x = v3->x;
+	if(v1->y < min_y) min_y = v1->y;
+	if(v2->y < min_y) min_y = v2->y;
+	if(v3->y < min_y) min_y = v3->y;
+	if(v1->y > max_y) max_y = v1->y;
+	if(v2->y > max_y) max_y = v2->y;
+	if(v3->y > max_y) max_y = v3->y;
+	if(min_x < 0) min_x = 0;
+	if(max_x > window_width) max_x = window_width;
+	if(min_y < 0) min_y = 0;
+	if(max_y > window_height) max_y = window_height;
+		
+	int i, j;
+	for(j = min_y; j < max_y; j++) {
+		for(i = min_x; i < max_x; i++) {
+			int drawn = 0;
+			
+			double barycentric[3];
+			barycentric[0] = ((v2->y - v3->y) * (i - v3->x) + (v3->x - v2->x) * (j - v3->y)) /
+			                 ((v2->y - v3->y) * (v1->x - v3->x) + (v3->x - v2->x) * (v1->y - v3->y));
+			
+			barycentric[1] = ((v3->y - v1->y) * (i - v3->x) + (v1->x - v3->x) * (j - v3->y)) /
+			                 ((v2->y - v3->y) * (v1->x - v3->x) + (v3->x - v2->x) * (v1->y - v3->y));
+			
+			barycentric[2] = 1.0 - barycentric[0] - barycentric[1];
+			
+			
+			if(barycentric[0] > 0 && barycentric[0] < 1 && barycentric[1] > 0 && barycentric[1] < 1 && barycentric[2] > 0 && barycentric[2] < 1) {				
+				//z-buffer checking
+				double z_coord = barycentric[0] * tri.v1.z + barycentric[1] * tri.v2.z + barycentric[2] * tri.v3.z;
+				if(z_coord <= 0 || z_coord > zbuffer[i + j * window_size->x]) {
+					continue;
+				} else {
+					zbuffer[i + j * window_size->x] = z_coord;
+				}
+				
+				double z_fac = 1.0;
+				if(z_coord > 1000.0) {
+					z_fac = 0;
+				} else if(z_coord < 0) {
+					z_fac = 1.0;
+				} else {
+					z_fac = 1.0 - (z_coord / 1000.0);
+				}
+				Uint8 col = z_fac * 255;
+				if(SDL_SetRenderDrawColor(renderer, col, col, col, 255) < 0) {
+					printf("Failed to set renderer color: %s\n", SDL_GetError());
+					return;
+				}
 				
 				SDL_RenderDrawPoint(renderer, i, j);
 				
