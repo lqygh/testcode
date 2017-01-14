@@ -62,45 +62,181 @@ void vector4_mul_matrix4(struct vector4* vec, struct matrix4* mat, struct vector
 	output->w = (vec->x) * (mat->value[0][3]) + (vec->y) * (mat->value[1][3]) + (vec->z) * (mat->value[2][3]) + (vec->w) * (mat->value[3][3]);
 }
 
-//lookat function to produce a world to camera matrix
+static int gluInvertMatrix(const double m[16], double invOut[16]) {
+    double inv[16], det;
+    int i;
+
+    inv[0] = m[5]  * m[10] * m[15] - 
+             m[5]  * m[11] * m[14] - 
+             m[9]  * m[6]  * m[15] + 
+             m[9]  * m[7]  * m[14] +
+             m[13] * m[6]  * m[11] - 
+             m[13] * m[7]  * m[10];
+
+    inv[4] = -m[4]  * m[10] * m[15] + 
+              m[4]  * m[11] * m[14] + 
+              m[8]  * m[6]  * m[15] - 
+              m[8]  * m[7]  * m[14] - 
+              m[12] * m[6]  * m[11] + 
+              m[12] * m[7]  * m[10];
+
+    inv[8] = m[4]  * m[9] * m[15] - 
+             m[4]  * m[11] * m[13] - 
+             m[8]  * m[5] * m[15] + 
+             m[8]  * m[7] * m[13] + 
+             m[12] * m[5] * m[11] - 
+             m[12] * m[7] * m[9];
+
+    inv[12] = -m[4]  * m[9] * m[14] + 
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5] * m[14] - 
+               m[8]  * m[6] * m[13] - 
+               m[12] * m[5] * m[10] + 
+               m[12] * m[6] * m[9];
+
+    inv[1] = -m[1]  * m[10] * m[15] + 
+              m[1]  * m[11] * m[14] + 
+              m[9]  * m[2] * m[15] - 
+              m[9]  * m[3] * m[14] - 
+              m[13] * m[2] * m[11] + 
+              m[13] * m[3] * m[10];
+
+    inv[5] = m[0]  * m[10] * m[15] - 
+             m[0]  * m[11] * m[14] - 
+             m[8]  * m[2] * m[15] + 
+             m[8]  * m[3] * m[14] + 
+             m[12] * m[2] * m[11] - 
+             m[12] * m[3] * m[10];
+
+    inv[9] = -m[0]  * m[9] * m[15] + 
+              m[0]  * m[11] * m[13] + 
+              m[8]  * m[1] * m[15] - 
+              m[8]  * m[3] * m[13] - 
+              m[12] * m[1] * m[11] + 
+              m[12] * m[3] * m[9];
+
+    inv[13] = m[0]  * m[9] * m[14] - 
+              m[0]  * m[10] * m[13] - 
+              m[8]  * m[1] * m[14] + 
+              m[8]  * m[2] * m[13] + 
+              m[12] * m[1] * m[10] - 
+              m[12] * m[2] * m[9];
+
+    inv[2] = m[1]  * m[6] * m[15] - 
+             m[1]  * m[7] * m[14] - 
+             m[5]  * m[2] * m[15] + 
+             m[5]  * m[3] * m[14] + 
+             m[13] * m[2] * m[7] - 
+             m[13] * m[3] * m[6];
+
+    inv[6] = -m[0]  * m[6] * m[15] + 
+              m[0]  * m[7] * m[14] + 
+              m[4]  * m[2] * m[15] - 
+              m[4]  * m[3] * m[14] - 
+              m[12] * m[2] * m[7] + 
+              m[12] * m[3] * m[6];
+
+    inv[10] = m[0]  * m[5] * m[15] - 
+              m[0]  * m[7] * m[13] - 
+              m[4]  * m[1] * m[15] + 
+              m[4]  * m[3] * m[13] + 
+              m[12] * m[1] * m[7] - 
+              m[12] * m[3] * m[5];
+
+    inv[14] = -m[0]  * m[5] * m[14] + 
+               m[0]  * m[6] * m[13] + 
+               m[4]  * m[1] * m[14] - 
+               m[4]  * m[2] * m[13] - 
+               m[12] * m[1] * m[6] + 
+               m[12] * m[2] * m[5];
+
+    inv[3] = -m[1] * m[6] * m[11] + 
+              m[1] * m[7] * m[10] + 
+              m[5] * m[2] * m[11] - 
+              m[5] * m[3] * m[10] - 
+              m[9] * m[2] * m[7] + 
+              m[9] * m[3] * m[6];
+
+    inv[7] = m[0] * m[6] * m[11] - 
+             m[0] * m[7] * m[10] - 
+             m[4] * m[2] * m[11] + 
+             m[4] * m[3] * m[10] + 
+             m[8] * m[2] * m[7] - 
+             m[8] * m[3] * m[6];
+
+    inv[11] = -m[0] * m[5] * m[11] + 
+               m[0] * m[7] * m[9] + 
+               m[4] * m[1] * m[11] - 
+               m[4] * m[3] * m[9] - 
+               m[8] * m[1] * m[7] + 
+               m[8] * m[3] * m[5];
+
+    inv[15] = m[0] * m[5] * m[10] - 
+              m[0] * m[6] * m[9] - 
+              m[4] * m[1] * m[10] + 
+              m[4] * m[2] * m[9] + 
+              m[8] * m[1] * m[6] - 
+              m[8] * m[2] * m[5];
+
+    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    if (det == 0)
+        return -1;
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        invOut[i] = inv[i] * det;
+
+    return 0;
+}
+
+int matrix4_invert(struct matrix4* input, struct matrix4* output) {
+	return gluInvertMatrix(&(input->value[0][0]), &(output->value[0][0]));
+}
+
+//lookat function to produce a camera to world matrix
 void lookat(struct vector3* from, struct vector3* to, struct vector3* up, struct matrix4* output) {
 	struct vector3 forward, right;
 	struct vector3 forward_normalized, right_normalized, up_normalized;
-	double fdfn, fdrn, fdun;
+	//double fdfn, fdrn, fdun;
 	
 	//forward
 	vector3_sub(from, to, &forward);
 	vector3_normalize(&forward, &forward_normalized);
-	vector3_dot(from, &forward_normalized, &fdfn);
+	//vector3_dot(from, &forward_normalized, &fdfn);
 	
 	//right
 	vector3_cross(up, &forward, &right);
 	vector3_normalize(&right, &right_normalized);
-	vector3_dot(from, &right_normalized, &fdrn);
+	//vector3_dot(from, &right_normalized, &fdrn);
 	
 	//up
 	vector3_cross(&forward_normalized, &right_normalized, &up_normalized);
-	vector3_dot(from, &up_normalized, &fdun);
+	//vector3_dot(from, &up_normalized, &fdun);
 	
 	//view matrix
 	output->value[0][0] = right_normalized.x;
-	output->value[1][0] = right_normalized.y;
-	output->value[2][0] = right_normalized.z;
-	output->value[3][0] = -fdrn;
-	
-	output->value[0][1] = up_normalized.x;
-	output->value[1][1] = up_normalized.y;
-	output->value[2][1] = up_normalized.z;
-	output->value[3][1] = -fdun;
-	
-	output->value[0][2] = forward_normalized.x;
-	output->value[1][2] = forward_normalized.y;
-	output->value[2][2] = forward_normalized.z;
-	output->value[3][2] = -fdfn;
-	
+	output->value[0][1] = right_normalized.y;
+	output->value[0][2] = right_normalized.z;
 	output->value[0][3] = 0;
+	//output->value[3][0] = -fdrn;
+	
+	output->value[1][0] = up_normalized.x;
+	output->value[1][1] = up_normalized.y;
+	output->value[1][2] = up_normalized.z;
 	output->value[1][3] = 0;
+	//output->value[3][1] = -fdun;
+	
+	output->value[2][0] = forward_normalized.x;
+	output->value[2][1] = forward_normalized.y;
+	output->value[2][2] = forward_normalized.z;
 	output->value[2][3] = 0;
+	//output->value[3][2] = -fdfn;
+	
+	output->value[3][0] = from->x;
+	output->value[3][1] = from->y;
+	output->value[3][2] = from->z;
 	output->value[3][3] = 1.0;
 }
 
@@ -114,8 +250,8 @@ void camera_to_screen(struct vector3* input, struct vector3* output) {
 
 //convert screen space to NDC space
 void screen_to_ndc(struct vector3* input, double width, double height, struct vector3* output) {
-	output->x = ((input->x) + (width / 2)) / width;
-	output->y = ((input->y) + (height / 2)) / height;
+	output->x = ((input->x) + (width / 2.0)) / width;
+	output->y = ((input->y) + (height / 2.0)) / height;
 	output->z = input->z;
 }
 

@@ -48,6 +48,8 @@ void vector3_mul_matrix4(struct vector3* vec, struct matrix4* mat, struct vector
 
 void vector4_mul_matrix4(struct vector4* vec, struct matrix4* mat, struct vector4* output);
 
+int matrix4_invert(struct matrix4* input, struct matrix4* output);
+
 //lookat function to produce a world to camera matrix
 void lookat(struct vector3* from, struct vector3* to, struct vector3* up, struct matrix4* output);
 
