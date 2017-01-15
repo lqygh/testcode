@@ -2,6 +2,8 @@
 #include "matrix.h"
 
 int main() {
+	printf("pi: %f\n\n", M_PI);
+	
 	//from
 	struct vector3 v0 = {-10, 10, 0};
 	struct vector3 v0n;

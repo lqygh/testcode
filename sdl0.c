@@ -158,6 +158,7 @@ void obj_to_raster(struct vector3* world, struct matrix4* world_to_camera, doubl
 }
 
 void draw_triangle(SDL_Renderer* renderer, struct vector3i* v1, struct vector3i* v2, struct vector3i* v3, int window_width, int window_height, double* zbuffer) {
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	
 	//find the bounding box of the triangle
 	int min_x = window_width;
@@ -193,7 +194,7 @@ void draw_triangle(SDL_Renderer* renderer, struct vector3i* v1, struct vector3i*
 			barycentric[1] = (double)((v3->y - v1->y) * (i - v3->x) + (v1->x - v3->x) * (j - v3->y)) /
 			                 (double)((v2->y - v3->y) * (v1->x - v3->x) + (v3->x - v2->x) * (v1->y - v3->y));
 			
-			barycentric[2] = 0.1 - barycentric[0] - barycentric[1];
+			barycentric[2] = 1.0 - barycentric[0] - barycentric[1];
 			
 			
 			if(barycentric[0] > 0 && barycentric[0] < 1 && barycentric[1] > 0 && barycentric[1] < 1 && barycentric[2] > 0 && barycentric[2] < 1) {				
@@ -214,10 +215,10 @@ void draw_triangle(SDL_Renderer* renderer, struct vector3i* v1, struct vector3i*
 					z_fac = 0.1 - (z_coord / 1000.0);
 				}
 				Uint8 col = z_fac * 255; */
-				if(SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255) < 0) {
+				/* if(SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255) < 0) {
 					printf("Failed to set renderer color: %s\n", SDL_GetError());
 					return;
-				}
+				} */
 				
 				SDL_RenderDrawPoint(renderer, i, j);
 				
@@ -347,11 +348,16 @@ int draw_thread(void* arg) {
 			zbuffer[i] = INFINITY;
 		}
 		
+		/* struct vector3i v1 = {0, 0, 5};
+		struct vector3i v2 = {600, 400, 5};
+		struct vector3i v3 = {0, 400, 5};
+		draw_triangle(renderer, &v1, &v2, &v3, window_width, window_height, zbuffer); */
+		
 		//draw triangles
 		draw_triangles(renderer, triangles, window_width, window_height, zbuffer);
 		
 		//draw lines
-		draw_lines(renderer, triangles);
+		//draw_lines(renderer, triangles);
 		
 		//update point
 		//update_bouncing_point(bpstate);
@@ -422,10 +428,10 @@ int main(int argc, char* argv[]) {
 	struct bouncing_point_state bpstate = {width, height, rand()%width, rand()%height, (rand()%15)+1, (rand()%15)+1};
 	
 	//a triangle in world space
-	int num_vertices = 3;
-	int num_triangles = 1;
-	struct vector3 vertices_orig[] = {{-100, 35, -6.1}, {0.0, 70, -6.1}, {100, 35, -6.1}};
-	int tvindices[] = {0, 1, 2};
+	int num_vertices = 4;
+	int num_triangles = 2;
+	struct vector3 vertices_orig[] = {{-100, 0, -2.61}, {0, 0, -6.61}, {100, 0, -2.61}, {-100, 35, -2.61}};
+	int tvindices[] = {0, 1, 2, 3, 0, 1};
 	
 	//a cube in world space
 	/* int num_vertices = 8;
@@ -437,16 +443,18 @@ int main(int argc, char* argv[]) {
 	
 	//camera parameters
 	struct vector3 camera_from = {0.0, 0.0, 0};
-	struct vector3 camera_to = {0.0, 0.0, -1.0};
-	struct vector3 camera_up = {0, 1.0, 0};
+	//struct vector3 camera_to = {0.0, 0.0, -1.0};
+	//struct vector3 camera_up = {0, 1.0, 0};
+	double pitch_deg = 0;
+	double yaw_deg = 0;
 	struct matrix4 camera_to_world;
 	struct matrix4 world_to_camera;
-	lookat(&camera_from, &camera_to, &camera_up, &camera_to_world);
+	fpscam(&camera_from, degree_to_radian(pitch_deg), degree_to_radian(yaw_deg), &camera_to_world);
 	matrix4_invert(&camera_to_world, &world_to_camera);
 	
-	//cube converted to raster space
+	//convert to raster space
 	struct vector3i vertices_2d[num_vertices];
-	obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, 128, 72, width, height, vertices_2d, num_vertices);
+	obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, 640, 480, width, height, vertices_2d, num_vertices);
 	
 	struct obj_3di triangles_2d;
 	triangles_2d.vertices = vertices_2d;
@@ -462,10 +470,6 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	
-	/* double sin2 = 0.0348994967;
-	double cos2 = 0.99939082701;
-	double sinm2 = -0.0348994967;
-	double cosm2 = 0.99939082701; */
 	SDL_Event event;
 	while(dtargs.should_run) {
 		if(SDL_WaitEvent(&event) == 1) {
@@ -498,30 +502,39 @@ int main(int argc, char* argv[]) {
 				} else if(ev->keysym.sym == SDLK_e) {
 					camera_from.y += 0.1;
 				} else if(ev->keysym.sym == SDLK_i) {
-					camera_to.z -= 0.1;
+					pitch_deg += 0.1;
+					if(pitch_deg > 90.0) pitch_deg = 90.0;
 				} else if(ev->keysym.sym == SDLK_k) {
-					camera_to.z += 0.1;
+					pitch_deg -= 0.1;
+					if(pitch_deg < -90.0) pitch_deg = -90.0;
 				} else if(ev->keysym.sym == SDLK_j) {
-					camera_to.x -= 10.0;
+					yaw_deg -= 0.1;
+					if(yaw_deg < 0.0) yaw_deg = 360.0;
 				} else if(ev->keysym.sym == SDLK_l) {
-					camera_to.x += 10.0;
+					yaw_deg += 0.1;
+					if(yaw_deg > 360.0) yaw_deg = 0.0;
 				} else if(ev->keysym.sym == SDLK_u) {
-					camera_to.y -= 0.1;
+					//camera_to.y -= 0.1;
 				} else if(ev->keysym.sym == SDLK_o) {
-					camera_to.y += 0.1;
+					//camera_to.y += 0.1;
 				} else if(ev->keysym.sym == SDLK_r) {
 					camera_from = (struct vector3){0.0, 0.0, 0.0};
-					camera_to = (struct vector3){0.0, 0.0, -0.1};
+					//camera_to = (struct vector3){0.0, 0.0, -0.1};
+					pitch_deg = 0;
+					yaw_deg = 0;
 				}
 				
-				lookat(&camera_from, &camera_to, &camera_up, &camera_to_world);
+				//lookat(&camera_from, &camera_to, &camera_up, &camera_to_world);
+				fpscam(&camera_from, degree_to_radian(pitch_deg), degree_to_radian(yaw_deg), &camera_to_world);
 				matrix4_invert(&camera_to_world, &world_to_camera);
-				obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, 128, 72, width, height, vertices_2d, num_vertices);
+				obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, 640, 480, width, height, vertices_2d, num_vertices);
 				
 				putchar('\n');
+				printf("pitch: %f, yaw: %f\n", pitch_deg, yaw_deg);
+				putchar('\n');
 				print_vector3(&camera_from);
-				print_vector3(&camera_to);
-				print_vector3(&camera_up);
+				//print_vector3(&camera_to);
+				//print_vector3(&camera_up);
 				putchar('\n');
 				print_matrix4(&camera_to_world);
 				putchar('\n');

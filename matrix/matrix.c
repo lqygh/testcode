@@ -1,5 +1,13 @@
 #include "matrix.h"
 
+double degree_to_radian(double degree) {
+	return M_PI * (degree / 180.0);
+}
+
+double radian_to_degree(double radian) {
+	return radian * (180.0 / M_PI);
+}
+
 void matrix3_mul(struct matrix3* left, struct matrix3* right, struct matrix3* output) {	
 	unsigned char i, j;
 	for(i = 0; i < 3; i++) {
@@ -39,8 +47,8 @@ void vector3_normalize(struct vector3* input, struct vector3* output) {
 	output->z = (input->z) * oon;
 }
 
-void vector3_dot(struct vector3* left, struct vector3* right, double* output) {
-	*output = (left->x) * (right->x) + (left->y) * (right->y) + (left->z) * (right->z);
+double vector3_dot(struct vector3* left, struct vector3* right) {
+	return (left->x) * (right->x) + (left->y) * (right->y) + (left->z) * (right->z);
 }
 
 void vector3_cross(struct vector3* left, struct vector3* right, struct vector3* output) {
@@ -199,40 +207,63 @@ int matrix4_invert(struct matrix4* input, struct matrix4* output) {
 void lookat(struct vector3* from, struct vector3* to, struct vector3* up, struct matrix4* output) {
 	struct vector3 forward, right;
 	struct vector3 forward_normalized, right_normalized, up_normalized;
-	//double fdfn, fdrn, fdun;
 	
 	//forward
 	vector3_sub(from, to, &forward);
 	vector3_normalize(&forward, &forward_normalized);
-	//vector3_dot(from, &forward_normalized, &fdfn);
 	
 	//right
 	vector3_cross(up, &forward, &right);
 	vector3_normalize(&right, &right_normalized);
-	//vector3_dot(from, &right_normalized, &fdrn);
 	
 	//up
 	vector3_cross(&forward_normalized, &right_normalized, &up_normalized);
-	//vector3_dot(from, &up_normalized, &fdun);
 	
-	//view matrix
 	output->value[0][0] = right_normalized.x;
 	output->value[0][1] = right_normalized.y;
 	output->value[0][2] = right_normalized.z;
 	output->value[0][3] = 0;
-	//output->value[3][0] = -fdrn;
 	
 	output->value[1][0] = up_normalized.x;
 	output->value[1][1] = up_normalized.y;
 	output->value[1][2] = up_normalized.z;
 	output->value[1][3] = 0;
-	//output->value[3][1] = -fdun;
 	
 	output->value[2][0] = forward_normalized.x;
 	output->value[2][1] = forward_normalized.y;
 	output->value[2][2] = forward_normalized.z;
 	output->value[2][3] = 0;
-	//output->value[3][2] = -fdfn;
+	
+	output->value[3][0] = from->x;
+	output->value[3][1] = from->y;
+	output->value[3][2] = from->z;
+	output->value[3][3] = 1.0;
+}
+
+//fpscam function to produce a camera to world matrix
+void fpscam(struct vector3* from, double pitch, double yaw, struct matrix4* output) {
+	//pitch shoule be between -pi/2 and pi/2
+	//yaw should be between 0 and 2*pi
+	
+	double pitch_sin = sin(pitch);
+	double pitch_cos = cos(pitch);
+	double yaw_sin = sin(yaw);
+	double yaw_cos = cos(yaw);
+	
+	output->value[0][0] = yaw_cos;
+	output->value[0][1] = 0;
+	output->value[0][2] = -yaw_sin;
+	output->value[0][3] = 0;
+	
+	output->value[1][0] = yaw_sin * pitch_sin;
+	output->value[1][1] = pitch_cos;
+	output->value[1][2] = yaw_cos * pitch_sin;
+	output->value[1][3] = 0;
+	
+	output->value[2][0] = yaw_sin * pitch_cos;
+	output->value[2][1] = -pitch_sin;
+	output->value[2][2] = yaw_cos * pitch_cos;
+	output->value[2][3] = 0;
 	
 	output->value[3][0] = from->x;
 	output->value[3][1] = from->y;
