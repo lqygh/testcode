@@ -64,7 +64,7 @@ void lookat(struct vector3* from, struct vector3* to, struct vector3* up, struct
 //fpscam function to produce a camera to world matrix
 void fpscam(struct vector3* from, double pitch, double yaw, struct matrix4* output);
 
-void camera_to_screen(struct vector3* input, struct vector3* output);
+int camera_to_screen(struct vector3* input, double width, double height, struct vector3* output);
 
 void screen_to_ndc(struct vector3* input, double width, double height, struct vector3* output);
 

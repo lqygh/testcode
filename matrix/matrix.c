@@ -41,7 +41,7 @@ void vector3_sub(struct vector3* left, struct vector3* right, struct vector3* ou
 
 void vector3_normalize(struct vector3* input, struct vector3* output) {
 	double norm = sqrt((input->x) * (input->x) + (input->y) * (input->y) + (input->z) * (input->z));
-	double oon = 1.0/norm;
+	double oon = 1.0 / norm;
 	output->x = (input->x) * oon;
 	output->y = (input->y) * oon;
 	output->z = (input->z) * oon;
@@ -272,11 +272,18 @@ void fpscam(struct vector3* from, double pitch, double yaw, struct matrix4* outp
 }
 
 //convert camera space to screen space
-void camera_to_screen(struct vector3* input, struct vector3* output) {
+int camera_to_screen(struct vector3* input, double width, double height, struct vector3* output) {
 	//perspective divide
 	output->x = (input->x) / -(input->z);
 	output->y = (input->y) / -(input->z);
 	output->z = -(input->z);
+	
+	if(fabs(output->x) > width || fabs(output->y) > height) {
+		output->z = -100.0;
+		return -1;
+	}
+	
+	return 0;
 }
 
 //convert screen space to NDC space
@@ -299,7 +306,7 @@ void world_to_raster(struct vector3* world, struct matrix4* world_to_camera, dou
 	//world to camera
 	vector3_mul_matrix4(world, world_to_camera, &camera);
 	//camera to screen
-	camera_to_screen(&camera, &screen);
+	camera_to_screen(&camera, screen_width, screen_height, &screen);
 	//screen to NDC
 	screen_to_ndc(&screen, screen_width, screen_height, &ndc);
 	//NDC to raster

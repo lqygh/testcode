@@ -2,7 +2,7 @@ nclient:
 	gcc -O3 -Wall -Wextra nclient.c netutil/netutil.c -lpthread -o nclient
 
 sdl0:
-	gcc -O3 -Wall -Wextra sdl0.c matrix/matrix.c -march=native `sdl2-config --cflags --libs` -lm -o sdl0
+	gcc -O3 -Wall -Wextra -std=c99 sdl0.c matrix/matrix.c -march=native `sdl2-config --cflags --libs` -lm -o sdl0
 
 sodium0:
 	gcc -O3 -Wall -Wextra sodium0.c -lsodium -o sodium0
