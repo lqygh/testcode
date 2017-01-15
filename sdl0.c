@@ -427,10 +427,10 @@ int main(int argc, char* argv[]) {
 	
 	//a triangle in world space
 	int num_vertices = 12;
-	int num_triangles = 6;
+	int num_triangles = 5;
 	struct vector3 vertices_orig[] = {{-50, 50, -2}, {-50, -50, -2}, {50, 50, -2}, {50, -50, -2},
-	                                  {-50, 60, -2.5}, {-50, 160, -2.5}, {50, 60, -2.5}, {50, 160, -2.5},
-									  {-60, -40, 1}, {-60, 40, 1}, {-60, -40, -1}, {-60, 40, -1}};
+	                                  {-50, 50, -2.5}, {-50, -50, -2.5}, {50, 50, -2.5}, {50, -50, -2.5},
+									  {-50, 0, 2}, {-50, 0, -2}, {50, 0, 2}, {50, 0, -2}};
 	int tvindices[] = {0, 1, 2, 1, 2, 3, 4, 5, 6, 5, 6, 7, 8, 9, 10, 9, 10, 11};
 	
 	//a cube in world space
@@ -442,10 +442,10 @@ int main(int argc, char* argv[]) {
 	int tvindices[] = {0, 1, 2, 2, 1, 3, 2, 3, 4, 4, 3, 5, 4, 5, 6, 6, 5, 7, 6, 7, 0, 0, 7, 1, 1, 7, 3, 3, 7, 5, 6, 0, 4, 4, 0, 2}; */
 	
 	//camera parameters
-	struct vector3 camera_from = {0.0, 0.0, 0};
+	struct vector3 camera_from = {0.0, 1.0, 0.0};
 	//struct vector3 camera_to = {0.0, 0.0, -1.0};
 	//struct vector3 camera_up = {0, 1.0, 0};
-	double pitch_deg = 0;
+	double pitch_deg = -90.0;
 	double yaw_deg = 0;
 	struct matrix4 camera_to_world;
 	struct matrix4 world_to_camera;
@@ -500,9 +500,9 @@ int main(int argc, char* argv[]) {
 				} else if(ev->keysym.sym == SDLK_d) {
 					camera_from.x += 10.0;
 				} else if(ev->keysym.sym == SDLK_q) {
-					camera_from.y -= 10.0;
+					camera_from.y -= 0.05;
 				} else if(ev->keysym.sym == SDLK_e) {
-					camera_from.y += 10.0;
+					camera_from.y += 0.05;
 				} else if(ev->keysym.sym == SDLK_i) {
 					pitch_deg += 0.05;
 					if(pitch_deg > 90.0) pitch_deg = 90.0;
@@ -510,10 +510,10 @@ int main(int argc, char* argv[]) {
 					pitch_deg -= 0.05;
 					if(pitch_deg < -90.0) pitch_deg = -90.0;
 				} else if(ev->keysym.sym == SDLK_j) {
-					yaw_deg -= 0.05;
+					yaw_deg -= 5;
 					if(yaw_deg < 0.0) yaw_deg = 360.0;
 				} else if(ev->keysym.sym == SDLK_l) {
-					yaw_deg += 0.05;
+					yaw_deg += 5;
 					if(yaw_deg > 360.0) yaw_deg = 0.0;
 				} else if(ev->keysym.sym == SDLK_UP) {
 					screen_height += 5;
