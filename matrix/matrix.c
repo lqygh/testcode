@@ -279,7 +279,6 @@ int camera_to_screen(struct vector3* input, double width, double height, struct 
 	output->z = -(input->z);
 	
 	if(fabs(output->x) > width || fabs(output->y) > height) {
-		output->z = -100.0;
 		return -1;
 	}
 	
@@ -290,7 +289,15 @@ int camera_to_screen(struct vector3* input, double width, double height, struct 
 void screen_to_ndc(struct vector3* input, double width, double height, struct vector3* output) {
 	output->x = ((input->x) + (width / 2.0)) / width;
 	output->y = ((input->y) + (height / 2.0)) / height;
-	output->z = input->z;
+	output->z = ((input->z) - 1.0) / 1.0;
+	
+	/* if(output->z > 1.0) {
+		output->z = -(200.0 + output->z);
+	}
+	
+	if(fabs(input->x) > width / 2.0 || fabs(input->y) > height / 2.0) {
+		output->z = -100.0;
+	} */
 }
 
 //convert NDC space to raster space
