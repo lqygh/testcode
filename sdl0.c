@@ -155,6 +155,12 @@ void obj_to_raster(struct vector3* world, struct matrix4* world_to_camera, doubl
 	}
 }
 
+void camera_move(struct vector3* camera_position, struct matrix4* camera_to_world, double right, double upward, double forward) {
+	camera_position->x = camera_position->x + right * camera_to_world->value[0][0] + upward * camera_to_world->value[1][0] + forward * camera_to_world->value[2][0];
+	camera_position->y = camera_position->y + right * camera_to_world->value[0][1] + upward * camera_to_world->value[1][1] + forward * camera_to_world->value[2][1];
+	camera_position->z = camera_position->z + right * camera_to_world->value[0][2] + upward * camera_to_world->value[1][2] + forward * camera_to_world->value[2][2];
+}
+
 void draw_triangle(SDL_Renderer* renderer, struct vector3i* v1, struct vector3i* v2, struct vector3i* v3, int window_width, int window_height, double* zbuffer) {
 	//SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	
@@ -506,17 +512,23 @@ int main(int argc, char* argv[]) {
 				} else if(ev->keysym.sym == SDLK_m) {
 					delay += 1;
 				} else if(ev->keysym.sym == SDLK_w) {
-					camera_from.z -= 0.1;
+					camera_move(&camera_from, &camera_to_world, 0, 0, -0.1);
+					//camera_from.z -= 0.1;
 				} else if(ev->keysym.sym == SDLK_s) {
-					camera_from.z += 0.1;
+					camera_move(&camera_from, &camera_to_world, 0, 0, 0.1);
+					//camera_from.z += 0.1;
 				} else if(ev->keysym.sym == SDLK_a) {
-					camera_from.x -= 0.1;
+					camera_move(&camera_from, &camera_to_world, -0.1, 0, 0);
+					//camera_from.x -= 0.1;
 				} else if(ev->keysym.sym == SDLK_d) {
-					camera_from.x += 0.1;
+					camera_move(&camera_from, &camera_to_world, 0.1, 0, 0);
+					//camera_from.x += 0.1;
 				} else if(ev->keysym.sym == SDLK_q) {
-					camera_from.y -= 0.1;
+					camera_move(&camera_from, &camera_to_world, 0, -0.1, 0);
+					//camera_from.y -= 0.1;
 				} else if(ev->keysym.sym == SDLK_e) {
-					camera_from.y += 0.1;
+					camera_move(&camera_from, &camera_to_world, 0, 0.1, 0);
+					//camera_from.y += 0.1;
 				} else if(ev->keysym.sym == SDLK_i) {
 					pitch_deg += 1;
 					if(pitch_deg > 90.0) pitch_deg = 90.0;
@@ -557,16 +569,6 @@ int main(int argc, char* argv[]) {
 				
 				putchar('\n');
 				
-				printf("pitch: %f, yaw: %f\n", pitch_deg, yaw_deg);
-				putchar('\n');
-				
-				printf("screen_width: %f, screen_height: %f\n", screen_width, screen_height);
-				putchar('\n');
-				
-				printf("camera:\n");
-				print_vector3(&camera_from);
-				putchar('\n');
-				
 				printf("camera to world:\n");
 				print_matrix4(&camera_to_world);
 				putchar('\n');
@@ -575,7 +577,17 @@ int main(int argc, char* argv[]) {
 				print_matrix4(&world_to_camera);
 				putchar('\n');
 				
-				printf("vertices:\n");
+				printf("pitch: %f, yaw: %f\n", pitch_deg, yaw_deg);
+				putchar('\n');
+				
+				//printf("screen_width: %f, screen_height: %f\n", screen_width, screen_height);
+				//putchar('\n');
+				
+				printf("camera:\n");
+				print_vector3(&camera_from);
+				putchar('\n');
+				
+				printf("raster vertices:\n");
 				for(int i = 0; i < num_vertices; i++) {
 					print_vector3i(&vertices_2d[i]);
 				}
