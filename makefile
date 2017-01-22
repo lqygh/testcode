@@ -7,6 +7,9 @@ sdl0:
 sodium0:
 	gcc -O3 -Wall -Wextra sodium0.c -lsodium -o sodium0
 
+aes0:
+	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c aes0.c -o aes0
+
 montedice:
 	gcc -O3 -Wall -Wextra montedice.c -o montedice
 
