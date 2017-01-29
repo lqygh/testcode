@@ -493,10 +493,16 @@ int main(int argc, char* argv[]) {
 	}
 	
 	SDL_Event event;
+	int camera_heading_x = 0;
+	int camera_heading_y = 0;
+	int camera_heading_z = 0;
+	int camera_heading_pitch = 0;
+	int camera_heading_yaw = 0;
 	while(dtargs.should_run) {
-		if(SDL_WaitEvent(&event) == 1) {
+		if(SDL_PollEvent(&event) == 1) {
 			if(event.type == SDL_QUIT) {
 				printf("\nSDL_QUIT event occurred\n");
+				dtargs.should_run = 0;
 				break;
 			} else if(event.type == SDL_MOUSEWHEEL) {
 				SDL_MouseWheelEvent* ev = &(event.wheel);
@@ -512,43 +518,47 @@ int main(int argc, char* argv[]) {
 				} else if(ev->keysym.sym == SDLK_m) {
 					delay += 1;
 				} else if(ev->keysym.sym == SDLK_w) {
-					camera_move(&camera_from, &camera_to_world, 0, 0, -0.1);
-					//camera_from.z -= 0.1;
+					//camera_move(&camera_from, &camera_to_world, 0, 0, -0.1);
+					camera_heading_z = -1;
 				} else if(ev->keysym.sym == SDLK_s) {
-					camera_move(&camera_from, &camera_to_world, 0, 0, 0.1);
-					//camera_from.z += 0.1;
+					//camera_move(&camera_from, &camera_to_world, 0, 0, 0.1);
+					camera_heading_z = 1;
 				} else if(ev->keysym.sym == SDLK_a) {
-					camera_move(&camera_from, &camera_to_world, -0.1, 0, 0);
-					//camera_from.x -= 0.1;
+					//camera_move(&camera_from, &camera_to_world, -0.1, 0, 0);
+					camera_heading_x = -1;
 				} else if(ev->keysym.sym == SDLK_d) {
-					camera_move(&camera_from, &camera_to_world, 0.1, 0, 0);
-					//camera_from.x += 0.1;
+					//camera_move(&camera_from, &camera_to_world, 0.1, 0, 0);
+					camera_heading_x = 1;
 				} else if(ev->keysym.sym == SDLK_q) {
-					camera_move(&camera_from, &camera_to_world, 0, -0.1, 0);
-					//camera_from.y -= 0.1;
+					//camera_move(&camera_from, &camera_to_world, 0, -0.1, 0);
+					camera_heading_y = -1;
 				} else if(ev->keysym.sym == SDLK_e) {
-					camera_move(&camera_from, &camera_to_world, 0, 0.1, 0);
-					//camera_from.y += 0.1;
+					//camera_move(&camera_from, &camera_to_world, 0, 0.1, 0);
+					camera_heading_y = 1;
 				} else if(ev->keysym.sym == SDLK_i) {
-					pitch_deg += 1;
-					if(pitch_deg > 90.0) pitch_deg = 90.0;
+					//pitch_deg += 1;
+					camera_heading_pitch = 1;
+					//if(pitch_deg > 90.0) pitch_deg = 90.0;
 				} else if(ev->keysym.sym == SDLK_k) {
-					pitch_deg -= 1;
-					if(pitch_deg < -90.0) pitch_deg = -90.0;
+					//pitch_deg -= 1;
+					camera_heading_pitch = -1;
+					//if(pitch_deg < -90.0) pitch_deg = -90.0;
 				} else if(ev->keysym.sym == SDLK_j) {
-					yaw_deg += 1;
-					if(yaw_deg > 360.0) yaw_deg = 0.0;
+					//yaw_deg += 1;
+					camera_heading_yaw = 1;
+					//if(yaw_deg > 360.0) yaw_deg = 0.0;
 				} else if(ev->keysym.sym == SDLK_l) {
-					yaw_deg -= 1;
-					if(yaw_deg < 0) yaw_deg = 360.0;
+					//yaw_deg -= 1;
+					camera_heading_yaw = -1;
+					//if(yaw_deg < 0) yaw_deg = 360.0;
 				} else if(ev->keysym.sym == SDLK_UP) {
 					//screen_height += 0.1;
 				} else if(ev->keysym.sym == SDLK_DOWN) {
 					//screen_height -= 0.1;
-					if(screen_height < 0) screen_height = 5;
+					//if(screen_height < 0) screen_height = 5;
 				} else if(ev->keysym.sym == SDLK_LEFT) {
 					//screen_width -= 0.1;
-					if(screen_width < 0) screen_width = 5;
+					//if(screen_width < 0) screen_width = 5;
 				} else if(ev->keysym.sym == SDLK_RIGHT) {
 					//screen_width += 0.1;
 				} else if(ev->keysym.sym == SDLK_t) {
@@ -562,44 +572,89 @@ int main(int argc, char* argv[]) {
 					screen_height = 2.0;
 				}
 				
-				//lookat(&camera_from, &camera_to, &camera_up, &camera_to_world);
-				fpscam(&camera_from, degree_to_radian(pitch_deg), degree_to_radian(yaw_deg), &camera_to_world);
-				matrix4_invert(&camera_to_world, &world_to_camera);
-				obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, screen_width, screen_height, width, height, vertices_2d, num_vertices);
-				
-				putchar('\n');
-				
-				printf("camera to world:\n");
-				print_matrix4(&camera_to_world);
-				putchar('\n');
-				
-				printf("world to camera:\n");
-				print_matrix4(&world_to_camera);
-				putchar('\n');
-				
-				printf("pitch: %f, yaw: %f\n", pitch_deg, yaw_deg);
-				putchar('\n');
-				
-				//printf("screen_width: %f, screen_height: %f\n", screen_width, screen_height);
-				//putchar('\n');
-				
-				printf("camera:\n");
-				print_vector3(&camera_from);
-				putchar('\n');
-				
-				printf("raster vertices:\n");
-				for(int i = 0; i < num_vertices; i++) {
-					print_vector3i(&vertices_2d[i]);
+			} else if(event.type == SDL_KEYUP) {
+				SDL_KeyboardEvent* ev = &(event.key);
+				if(ev->keysym.sym == SDLK_w) {
+					//camera_move(&camera_from, &camera_to_world, 0, 0, -0.1);
+					camera_heading_z = 0;
+				} else if(ev->keysym.sym == SDLK_s) {
+					//camera_move(&camera_from, &camera_to_world, 0, 0, 0.1);
+					camera_heading_z = 0;
+				} else if(ev->keysym.sym == SDLK_a) {
+					//camera_move(&camera_from, &camera_to_world, -0.1, 0, 0);
+					camera_heading_x = 0;
+				} else if(ev->keysym.sym == SDLK_d) {
+					//camera_move(&camera_from, &camera_to_world, 0.1, 0, 0);
+					camera_heading_x = 0;
+				} else if(ev->keysym.sym == SDLK_q) {
+					//camera_move(&camera_from, &camera_to_world, 0, -0.1, 0);
+					camera_heading_y = 0;
+				} else if(ev->keysym.sym == SDLK_e) {
+					//camera_move(&camera_from, &camera_to_world, 0, 0.1, 0);
+					camera_heading_y = 0;
+				} else if(ev->keysym.sym == SDLK_i) {
+					//pitch_deg += 1;
+					camera_heading_pitch = 0;
+					//if(pitch_deg > 90.0) pitch_deg = 90.0;
+				} else if(ev->keysym.sym == SDLK_k) {
+					//pitch_deg -= 1;
+					camera_heading_pitch = 0;
+					//if(pitch_deg < -90.0) pitch_deg = -90.0;
+				} else if(ev->keysym.sym == SDLK_j) {
+					//yaw_deg += 1;
+					camera_heading_yaw = 0;
+					//if(yaw_deg > 360.0) yaw_deg = 0.0;
+				} else if(ev->keysym.sym == SDLK_l) {
+					//yaw_deg -= 1;
+					camera_heading_yaw = 0;
+					//if(yaw_deg < 0) yaw_deg = 360.0;
 				}
-				putchar('\n');
 			}
-			
-			printf("\r                                        \rEvent type: %d, delay: %u ms", event.type, delay);
-			fflush(stdout);
-		} else {
-			printf("\nFailed to wait event: %s\n", SDL_GetError());
-			return 1;
 		}
+		
+		camera_move(&camera_from, &camera_to_world, 0.1 * (double)camera_heading_x, 0.1 * (double)camera_heading_y, 0.1 * (double)camera_heading_z);
+		pitch_deg = pitch_deg + 1.0 * (double)camera_heading_pitch;
+		yaw_deg = yaw_deg + 1.0 * (double)camera_heading_yaw;
+		if(pitch_deg > 90.0) pitch_deg = 90.0;
+		if(pitch_deg < -90.0) pitch_deg = -90.0;
+		if(yaw_deg > 360.0) yaw_deg = 0.0;
+		if(yaw_deg < 0) yaw_deg = 360.0;
+				
+		//lookat(&camera_from, &camera_to, &camera_up, &camera_to_world);
+		fpscam(&camera_from, degree_to_radian(pitch_deg), degree_to_radian(yaw_deg), &camera_to_world);
+		matrix4_invert(&camera_to_world, &world_to_camera);
+		obj_to_raster((struct vector3*)vertices_orig, &world_to_camera, screen_width, screen_height, width, height, vertices_2d, num_vertices);
+		
+		putchar('\n');
+		
+		printf("camera to world:\n");
+		print_matrix4(&camera_to_world);
+		putchar('\n');
+		
+		printf("world to camera:\n");
+		print_matrix4(&world_to_camera);
+		putchar('\n');
+		
+		printf("pitch: %f, yaw: %f\n", pitch_deg, yaw_deg);
+		putchar('\n');
+			
+		//printf("screen_width: %f, screen_height: %f\n", screen_width, screen_height);
+		//putchar('\n');
+			
+		printf("camera:\n");
+		print_vector3(&camera_from);
+		putchar('\n');
+		
+		printf("raster vertices:\n");
+		for(int i = 0; i < num_vertices; i++) {
+			print_vector3i(&vertices_2d[i]);
+		}
+		putchar('\n');
+
+		printf("\r                                        \rEvent type: %d, delay: %u ms", event.type, delay);
+		fflush(stdout);
+		
+		SDL_Delay(20);
 	}
 	
 	printf("Exit in 1 second\n");
