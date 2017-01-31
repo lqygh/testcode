@@ -4,6 +4,9 @@ nclient:
 sdl0:
 	gcc -O3 -Wall -Wextra -std=c99 sdl0.c matrix/matrix.c -march=native `sdl2-config --cflags --libs` -lm -o sdl0
 
+sdl0a:
+	gcc -O3 -Wall -Wextra -std=c99 sdl0.c matrix/matrix.c `sdl2-config --cflags --libs` -lm -o sdl0a
+
 sodium0:
 	gcc -O3 -Wall -Wextra sodium0.c -lsodium -o sodium0
 
