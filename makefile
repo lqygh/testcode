@@ -8,7 +8,10 @@ sdl0a:
 	gcc -O3 -Wall -Wextra -std=c99 sdl0.c matrix/matrix.c `sdl2-config --cflags --libs` -lm -o sdl0a
 
 sodium0:
-	gcc -O3 -Wall -Wextra sodium0.c -lsodium -o sodium0
+	gcc -O3 -Wall -Wextra sodium0.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium0
+
+sodium1:
+	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c sodium1.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium1
 
 aes0:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c aes0.c -o aes0
