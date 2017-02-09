@@ -13,6 +13,9 @@ sodium0:
 sodium1:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c sodium1.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium1
 
+sodium2:
+	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c sodium2.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium2
+
 aes0:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c aes0.c -o aes0
 
