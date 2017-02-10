@@ -129,8 +129,8 @@ int main(int argc, char* argv[]) {
 	printf("plain text decimal:\n");
 	print_decimal(plain_text, plain_text_len);
 		
-	unsigned char nonce[crypto_stream_chacha20_NONCEBYTES] = {8, 7, 6, 5, 4, 3, 2, 1};
-	unsigned char key[crypto_stream_chacha20_KEYBYTES] = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1, 1, 2, 3, 4, 5, 6, 7, 8};
+	unsigned char nonce[crypto_stream_chacha20_NONCEBYTES] = {8, 8, 7, 7, 4, 3, 2, 1};
+	unsigned char key[crypto_stream_chacha20_KEYBYTES] = {25, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1, 1, 2, 3, 4, 5, 6, 7, 250};
 	unsigned char packet_data[BUFFERSIZE] = {0};
 	
 	int16_t id = 33;
@@ -146,6 +146,8 @@ int main(int argc, char* argv[]) {
 	printf("packet data decimal:\n");
 	print_decimal(packet_data, ret);
 	
+	
+	
 	unsigned char decrypted[BUFFERSIZE] = {0};
 	int16_t id_decrypted = 0;
 	uint16_t decrypted_len = BUFFERSIZE;
@@ -160,6 +162,9 @@ int main(int argc, char* argv[]) {
 	
 	printf("decrypted data decimal:\n");
 	print_decimal(decrypted, decrypted_len);
+	
+	printf("decrypted content:\n%s\n", decrypted);
+	putchar('\n');
 	
 	return 0;
 }
