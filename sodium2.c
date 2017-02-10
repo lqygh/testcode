@@ -63,6 +63,51 @@ int packet_encode(void* eth_frame, uint16_t eth_frame_len, void* dst, size_t dst
 	return eth_frame_len + 24;
 }
 
+int packet_decode(void* src, size_t src_len, void* dst_eth_frame, uint16_t* dst_len, int16_t* id, void* key_256bit) {
+	if(src == NULL || dst_eth_frame == NULL || dst_len == NULL || id == NULL || key_256bit == NULL) {
+		return -1;
+	}
+	
+	if(src_len < 24 + 1 || *dst_len < 1) {
+		return -1;
+	}
+	
+	if(src_len - 24 > *dst_len) {
+		return -1;
+	}
+	
+	void* nonce_64bit = src + (src_len - 16);
+	AES128_ECB_decrypt(nonce_64bit, key_256bit, nonce_64bit);
+	
+	int ret = crypto_stream_chacha20_xor(src, src, src_len - 16, nonce_64bit, key_256bit);
+	if(ret < 0) {
+		return -1;
+	}
+	
+	uint16_t eth_frame_len_be;
+	memcpy(&eth_frame_len_be, src, 2);
+	uint16_t eth_frame_len = ntohs(eth_frame_len_be);
+	if(2 + (size_t)eth_frame_len + 4 + 2 + 16 != src_len) {
+		return -1;
+	}
+	
+	uint32_t frame_checksum_be;
+	memcpy(&frame_checksum_be, src + 2 + eth_frame_len, 4);
+	uint32_t frame_checksum = ntohl(frame_checksum_be);
+	if(frame_checksum != getchecksum(src + 2, eth_frame_len)) {
+		return -1;
+	}
+	
+	int16_t id_be;
+	memcpy(&id_be, src + 2 + eth_frame_len + 4, 2);
+	*id = ntohs(id_be);
+
+	memcpy(dst_eth_frame, src + 2, eth_frame_len);
+	*dst_len = eth_frame_len;
+	
+	return eth_frame_len;
+}
+
 int main(int argc, char* argv[]) {
 	if(init() < 0) {
 		fprintf(stderr, "init() failed\n");
@@ -100,6 +145,21 @@ int main(int argc, char* argv[]) {
 	
 	printf("packet data decimal:\n");
 	print_decimal(packet_data, ret);
+	
+	unsigned char decrypted[BUFFERSIZE] = {0};
+	int16_t id_decrypted = 0;
+	uint16_t decrypted_len = BUFFERSIZE;
+	ret = packet_decode(packet_data, ret, decrypted, &decrypted_len, &id_decrypted, key);
+	printf("Decrypting, packet_decode() returns %d\n", ret);
+	if(ret < 0) {
+		fprintf(stderr, "packet_decode() failed\n");
+		return 1;
+	} else {
+		printf("decrypted id: %d, length: %u\n", id_decrypted, decrypted_len);
+	}
+	
+	printf("decrypted data decimal:\n");
+	print_decimal(decrypted, decrypted_len);
 	
 	return 0;
 }
