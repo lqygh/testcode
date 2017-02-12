@@ -14,8 +14,11 @@ sodium1:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c sodium1.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium1
 
 sodium2:
-	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c sodium2.c -I/usr/local/include -L/usr/local/lib -lsodium -o sodium2
-
+	gcc -O3 -Wall -Wextra -mtune=native sodium2.c -ldl -o sodium2
+	
+packet_encoder:
+	gcc -O3 -Wall -Wextra -shared -fPIC -mtune=native tiny-AES128-C/aes.c packet_encoder.c -I/usr/local/include -L/usr/local/lib -lsodium -o packet_encoder.so
+	
 aes0:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c aes0.c -o aes0
 
