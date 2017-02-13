@@ -24,7 +24,7 @@ int packet_encoder_init(char* arg, void** state) {
 		return -1;
 	}
 	
-	printf("%d\n", 32 + 8 + sizeof(pthread_mutex_t));
+	printf("%lu\n", 32 + 8 + sizeof(pthread_mutex_t));
 	
 	if(pthread_mutex_init((*state) + 32 + 8, NULL) != 0) {
 		free(*state);
