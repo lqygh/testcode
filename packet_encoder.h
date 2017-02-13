@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include <sodium.h>
 #include "tiny-AES128-C/aes.h"
 

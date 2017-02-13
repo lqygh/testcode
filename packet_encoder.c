@@ -1,6 +1,6 @@
 #include "packet_encoder.h"
 
-static uint32_t getchecksum(void* data, size_t datalen) {
+static inline uint32_t getchecksum(void* data, size_t datalen) {
 	unsigned char* d = (unsigned char*)data;
 	uint32_t sum = 0;
 	size_t i = 0;
@@ -19,8 +19,15 @@ int packet_encoder_init(char* arg, void** state) {
 		return -1;
 	}
 		
-	*state = calloc(32 + 8, 1);
+	*state = calloc(32 + 8 + sizeof(pthread_mutex_t), 1);
 	if(*state == NULL) {
+		return -1;
+	}
+	
+	printf("%d\n", 32 + 8 + sizeof(pthread_mutex_t));
+	
+	if(pthread_mutex_init((*state) + 32 + 8, NULL) != 0) {
+		free(*state);
 		return -1;
 	}
 	
@@ -48,7 +55,9 @@ int packet_encoder_deinit(void** state) {
 		return -1;
 	}
 	
-	sodium_memzero(*state, 32 + 8);
+	pthread_mutex_destroy((*state) + 32 + 8);
+	
+	sodium_memzero(*state, 32 + 8 + sizeof(pthread_mutex_t));
 	free(*state);
 	*state = NULL;
 	
@@ -75,6 +84,11 @@ int packet_encode(void* eth_frame, uint16_t eth_frame_len, void* dst, size_t dst
 	uint32_t frame_checksum_be = htonl(getchecksum(eth_frame, eth_frame_len));
 	int16_t id_be = htons(id);
 	
+	//lock for nonce
+	if(pthread_mutex_lock(state + 32 + 8) != 0) {
+		return -1;
+	}
+	
 	uint8_t nonce[16] = {0};
 	memcpy(nonce, nonce_64bit, 8);
 	memcpy(nonce + 8, nonce_64bit, 8);
@@ -92,6 +106,11 @@ int packet_encode(void* eth_frame, uint16_t eth_frame_len, void* dst, size_t dst
 	}
 	
 	*((uint64_t*)nonce_64bit) += 1;
+	
+	//unlock for nonce
+	if(pthread_mutex_unlock(state + 32 + 8) != 0) {
+		return -1;
+	}
 	
 	return eth_frame_len + 24;
 }
