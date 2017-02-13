@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
 		plain_text_len = strlen((char*)plain_text) + 1;
 	}
 	
-	printf("plain text size: %lu, content:\n%s\n", plain_text_len, plain_text);
+	printf("plain text size: %zu, content:\n%s\n", plain_text_len, plain_text);
 	putchar('\n');
 	
 	printf("plain text decimal:\n");

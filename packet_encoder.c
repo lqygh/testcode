@@ -1,7 +1,8 @@
 #include "packet_encoder.h"
 
+//naive checksum function to ensure packet is from correctly implemented server/client
 static inline uint32_t getchecksum(void* data, size_t datalen) {
-	unsigned char* d = (unsigned char*)data;
+	unsigned char* d = data;
 	uint32_t sum = 0;
 	size_t i = 0;
 	for(i = 0; i < datalen; i++) {
@@ -40,6 +41,7 @@ int packet_encoder_init(char* arg, void** state) {
 		fclose(fp);
 		return -1;
 	}
+	
 	randombytes_buf((*state) + 32, 8);
 	
 	fclose(fp);
@@ -76,39 +78,36 @@ int packet_encode(void* eth_frame, uint16_t eth_frame_len, void* dst, size_t dst
 	}
 	
 	void* key_256bit = state;
-	void* nonce_64bit = state + 32;
+	uint64_t nonce_64bit = *((uint64_t*)(state + 32));
 	
 	uint16_t eth_frame_len_be = htons(eth_frame_len);
 	uint32_t frame_checksum_be = htonl(getchecksum(eth_frame, eth_frame_len));
 	int16_t id_be = htons(id);
 	
-	//lock for nonce
-	if(pthread_mutex_lock(state + 32 + 8) != 0) {
-		return -1;
-	}
-	
-	uint8_t nonce[16] = {0};
-	memcpy(nonce, nonce_64bit, 8);
-	memcpy(nonce + 8, nonce_64bit, 8);
-	AES128_ECB_encrypt(nonce, key_256bit, nonce);
+	uint8_t nonce_dup2[16] = {0};
+	memcpy(nonce_dup2, &nonce_64bit, 8);
+	memcpy(nonce_dup2 + 8, &nonce_64bit, 8);
+	AES128_ECB_encrypt(nonce_dup2, key_256bit, nonce_dup2);
 	
 	memcpy(dst, &eth_frame_len_be, 2);
 	memcpy(dst + 2, eth_frame, eth_frame_len);
 	memcpy(dst + 2 + eth_frame_len, &frame_checksum_be, 4);
 	memcpy(dst + 2 + eth_frame_len + 4, &id_be, 2);
-	memcpy(dst + 2 + eth_frame_len + 4 + 2, nonce, 16);
+	memcpy(dst + 2 + eth_frame_len + 4 + 2, nonce_dup2, 16);
 	
-	int ret = crypto_stream_chacha20_xor(dst, dst, 2 + eth_frame_len + 4 + 2, nonce_64bit, key_256bit);
+	int ret = crypto_stream_chacha20_xor(dst, dst, 2 + eth_frame_len + 4 + 2, (void*)(&nonce_64bit), key_256bit);
 	if(ret < 0) {
+		sodium_memzero(dst, dst_len);
 		return -1;
 	}
 	
-	*((uint64_t*)nonce_64bit) += 1;
+	//lock for incrementing nonce
+	pthread_mutex_lock(state + 32 + 8);
 	
-	//unlock for nonce
-	if(pthread_mutex_unlock(state + 32 + 8) != 0) {
-		return -1;
-	}
+	*((uint64_t*)(state + 32)) += 1;
+	
+	//unlock for incrementing nonce
+	pthread_mutex_unlock(state + 32 + 8);
 	
 	return eth_frame_len + 24;
 }
