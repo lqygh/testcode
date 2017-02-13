@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <dlfcn.h>
 
-#define BUFFERSIZE 500
+#define BUFFERSIZE 5000
 
 void print_decimal(unsigned char* data, size_t length) {
 	size_t i;
