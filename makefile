@@ -22,6 +22,9 @@ packet_encoder:
 packet_encoder_xs20:
 	gcc -O3 -Wall -Wextra -shared -fPIC -mtune=native packet_encoder_xs20.c -I/usr/local/include -L/usr/local/lib -lsodium -lpthread -o packet_encoder_xs20.so
 	
+packet_encoder_plain:
+	gcc -O3 -Wall -Wextra -shared -fPIC -mtune=native packet_encoder_plain.c -o packet_encoder_plain.so
+	
 aes0:
 	gcc -O3 -Wall -Wextra tiny-AES128-C/aes.c aes0.c -o aes0
 
