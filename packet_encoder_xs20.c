@@ -1,8 +1,8 @@
-#include "packet_encoder.h"
+#include "packet_encoder_xs20.h"
 
 /*
-(unsigned 16 bit Ethernet frame length + Ethernet frame + unsigned 32 bit Ethernet frame checksum + signed 16 bit client ID)streamcipher + (128 bit streamcipher nonce)aes
-each packet will have 24 byte overhead*/
+(unsigned 16 bit Ethernet frame length + Ethernet frame + unsigned 32 bit Ethernet frame checksum + signed 16 bit client ID)streamcipher + (192 bit streamcipher nonce)plain
+each packet will have 32 byte overhead*/
 
 //naive checksum function to ensure packet is from correctly implemented server/client
 static inline uint32_t getchecksum(void* data, size_t datalen) {
@@ -24,13 +24,8 @@ int packet_encoder_init(char* arg, void** state) {
 		return -1;
 	}
 		
-	*state = calloc(32 + 8 + sizeof(pthread_mutex_t), 1);
+	*state = calloc(sizeof(struct packet_encoder_state), 1);
 	if(*state == NULL) {
-		return -1;
-	}
-		
-	if(pthread_mutex_init((*state) + 32 + 8, NULL) != 0) {
-		free(*state);
 		return -1;
 	}
 	
@@ -46,10 +41,7 @@ int packet_encoder_init(char* arg, void** state) {
 		return -1;
 	}
 	
-	randombytes_buf((*state) + 32, 8);
-	
 	fclose(fp);
-	randombytes_close();
 	
 	return 0;
 }
@@ -58,12 +50,12 @@ int packet_encoder_deinit(void** state) {
 	if(state == NULL || *state == NULL) {
 		return -1;
 	}
-	
-	pthread_mutex_destroy((*state) + 32 + 8);
-	
-	sodium_memzero(*state, 32 + 8 + sizeof(pthread_mutex_t));
+		
+	sodium_memzero(*state, sizeof(struct packet_encoder_state));
 	free(*state);
 	*state = NULL;
+	
+	randombytes_close();
 	
 	return 0;
 }
@@ -77,43 +69,31 @@ int packet_encode(void* eth_frame, uint16_t eth_frame_len, void* dst, size_t dst
 		return -1;
 	}
 	
-	if((size_t)eth_frame_len + 24 > dst_len) {
+	if((size_t)eth_frame_len + 32 > dst_len) {
 		return -1;
 	}
 	
-	void* key_256bit = state;
-	uint64_t nonce_64bit = *((uint64_t*)(state + 32));
+	void* key_256bit = ((struct packet_encoder_state*)(state))->key;
+	unsigned char nonce_192bit[24] = {0};
+	randombytes_buf(nonce_192bit, 24);
 	
 	uint16_t eth_frame_len_be = htons(eth_frame_len);
 	uint32_t frame_checksum_be = htonl(getchecksum(eth_frame, eth_frame_len));
 	int16_t id_be = htons(id);
 	
-	uint8_t nonce_dup2[16] = {0};
-	memcpy(nonce_dup2, &nonce_64bit, 8);
-	memcpy(nonce_dup2 + 8, &nonce_64bit, 8);
-	AES128_ECB_encrypt(nonce_dup2, key_256bit, nonce_dup2);
-	
 	memcpy(dst, &eth_frame_len_be, 2);
 	memcpy(dst + 2, eth_frame, eth_frame_len);
 	memcpy(dst + 2 + eth_frame_len, &frame_checksum_be, 4);
 	memcpy(dst + 2 + eth_frame_len + 4, &id_be, 2);
-	memcpy(dst + 2 + eth_frame_len + 4 + 2, nonce_dup2, 16);
+	memcpy(dst + 2 + eth_frame_len + 4 + 2, nonce_192bit, 24);
 	
-	int ret = crypto_stream_chacha20_xor(dst, dst, 2 + eth_frame_len + 4 + 2, (void*)(&nonce_64bit), key_256bit);
+	int ret = crypto_stream_xor(dst, dst, 2 + eth_frame_len + 4 + 2, nonce_192bit, key_256bit);
 	if(ret < 0) {
 		sodium_memzero(dst, dst_len);
 		return -1;
 	}
 	
-	//lock for incrementing nonce
-	pthread_mutex_lock(state + 32 + 8);
-	
-	*((uint64_t*)(state + 32)) += 1;
-	
-	//unlock for incrementing nonce
-	pthread_mutex_unlock(state + 32 + 8);
-	
-	return eth_frame_len + 24;
+	return eth_frame_len + 32;
 }
 
 int packet_decode(void* src, size_t src_len, void* dst_eth_frame, uint16_t* dst_len, int16_t* id, void* state) {
@@ -121,19 +101,18 @@ int packet_decode(void* src, size_t src_len, void* dst_eth_frame, uint16_t* dst_
 		return -1;
 	}
 	
-	if(src_len < 24 + 1 || *dst_len < 1) {
+	if(src_len < 32 + 1 || *dst_len < 1) {
 		return -1;
 	}
 	
-	if(src_len - 24 > *dst_len) {
+	if(src_len - 32 > *dst_len) {
 		return -1;
 	}
 	
-	void* key_256bit = state;
-	void* nonce_64bit = src + (src_len - 16);
-	AES128_ECB_decrypt(nonce_64bit, key_256bit, nonce_64bit);
+	void* key_256bit = ((struct packet_encoder_state*)(state))->key;
+	void* nonce_192bit = src + (src_len - 24);
 	
-	int ret = crypto_stream_chacha20_xor(src, src, src_len - 16, nonce_64bit, key_256bit);
+	int ret = crypto_stream_xor(src, src, src_len - 24, nonce_192bit, key_256bit);
 	if(ret < 0) {
 		return -1;
 	}
@@ -141,7 +120,7 @@ int packet_decode(void* src, size_t src_len, void* dst_eth_frame, uint16_t* dst_
 	uint16_t eth_frame_len_be;
 	memcpy(&eth_frame_len_be, src, 2);
 	uint16_t eth_frame_len = ntohs(eth_frame_len_be);
-	if(2 + (size_t)eth_frame_len + 4 + 2 + 16 != src_len) {
+	if(2 + (size_t)eth_frame_len + 4 + 2 + 24 != src_len) {
 		return -1;
 	}
 	

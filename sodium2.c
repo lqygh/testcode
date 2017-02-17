@@ -137,6 +137,13 @@ int main(int argc, char* argv[]) {
 	printf("decrypted content:\n%s\n", decrypted);
 	putchar('\n');
 	
+	if(plain_text_len != decrypted_len || id != id_decrypted || memcmp(decrypted, plain_text, decrypted_len) != 0) {
+		fprintf(stderr, "FAIL: decrypted data does not match plain text\n");
+	} else {
+		printf("PASS\n");
+	}
+	putchar('\n');
+	
 	ret = packet_decode(packet_data2, siz2, decrypted, &decrypted_len, &id_decrypted, state);
 	printf("Decrypting, packet_decode() returns %d\n", ret);
 	if(ret < 0) {
@@ -153,6 +160,12 @@ int main(int argc, char* argv[]) {
 	
 	printf("decrypted content:\n%s\n", decrypted);
 	putchar('\n');
+	
+	if(plain_text_len != decrypted_len || id != id_decrypted || memcmp(decrypted, plain_text, decrypted_len) != 0) {
+		fprintf(stderr, "FAIL: decrypted data does not match plain text\n");
+	} else {
+		printf("PASS\n");
+	}
 	
 	packet_encoder_deinit(&state);
 	dlclose(dl_handle);
