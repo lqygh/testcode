@@ -21,6 +21,21 @@
 
 static unsigned char query_counter = 0;
 
+static inline unsigned char is_packet_queryreply(void* data, size_t len) {
+	if(data == NULL || len < 23) {
+		return 0;
+	}
+	
+	char* buff = (char*)data;
+	if(buff[4] == 'I' && len >= 23 && buff[22] != '\0') {
+			if(buff[17] == 'C' && buff[18] == 'o' && buff[19] == '-' && buff[20] == 'o' && buff[21] == 'p') {
+				return 1;
+			}
+	}
+	
+	return 0;
+}
+
 static inline unsigned char should_modify(struct sockaddr_in* sa) {
 	unsigned char* ip = (unsigned char*)&(sa->sin_addr.s_addr);
 	unsigned char should_modify = 0;
@@ -55,15 +70,13 @@ ssize_t sendto(int sockfd, const void* buf, size_t len, int flags, const struct 
 			putchar('\n');
 		}*/
 		
-		if(buff[4] == 'I' && len >= 23 && buff[22] != '\0') {
+		if(should_modify(addr) && is_packet_queryreply(buff, len)) {
 			char orig_22 = buff[22];
 			char* server_name = &buff[20];
 			snprintf(server_name, 3, "%02x", query_counter);
 			buff[22] = orig_22;
 			query_counter += 1;
-		}
-		
-		if(buff[4] == 'I' && should_modify(addr)) {
+			
 			char ip[INET_ADDRSTRLEN] = {0};
 			printf("\nsending modified query reply to %s:%u, query_counter: %u (hex: %02x)\n", inet_ntop(addr->sin_family, &(addr->sin_addr), ip, addrlen), ntohs(addr->sin_port), query_counter - 1, query_counter - 1);
 			size_t i;
