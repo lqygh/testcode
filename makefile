@@ -111,3 +111,6 @@ srvka:
 
 srvqry:
 	gcc -Wall -Wextra -O3 srvqry.c -o srvqry
+
+ka:
+	gcc -Wall -Wextra -O3 ka.c -o ka
