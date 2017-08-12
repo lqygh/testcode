@@ -114,3 +114,6 @@ srvqry:
 
 ka:
 	gcc -Wall -Wextra -O3 ka.c -o ka
+
+ka2:
+	gcc -Wall -Wextra -O3 ka2.c -o ka2
