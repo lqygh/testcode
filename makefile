@@ -89,10 +89,10 @@ c:
 	gcc -Wall -O3 c.c -lwiringPi -lpthread -o c
 
 TempSensorSender:
-	gcc -Wall -Wextra -O3 TempSensorSender.c -lwiringPi -lpthread -o TempSensorSender
+	gcc -Wall -Wextra -O3 TempSensorSender.c -lwiringPi -lpthread -lm -lcrypt -lrt -o TempSensorSender
 
 TempSensorSender2302:
-	gcc -Wall -Wextra -O3 TempSensorSender2302.c -lwiringPi -lpthread -o TempSensorSender2302
+	gcc -Wall -Wextra -O3 TempSensorSender2302.c -lwiringPi -lpthread -lm -lcrypt -lrt -o TempSensorSender2302
 
 mtnc:
 	gcc -Wall -Wextra -Werror -O3 mtnc.c -lpthread -o mtnc
